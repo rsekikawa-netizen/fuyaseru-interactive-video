@@ -1,0 +1,14 @@
+{
+  "name": "interactive-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ブラウザで動く分岐型インタラクティブ動画ツール一式",
+  "scripts": {
+    "start": "node scripts/dev-server.mjs",
+    "dev": "npm run start",
+    "validate": "node scripts/validate.mjs",
+    "demo:videos": "node scripts/generate-demo-videos.mjs",
+    "optimize": "node scripts/optimize-videos.mjs",
+    "split": "node scripts/split-video.mjs"
+  }
+}

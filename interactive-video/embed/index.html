@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>埋め込みコード — インタラクティブ動画</title>
+<style>
+  :root { color-scheme: dark; --bg:#0d0f14; --panel:#141820; --line:#252a36; --accent:#2b6cff; --text:#e8eaed; --muted:#9aa0aa; --warn:#c9a227; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, "Segoe UI", "Yu Gothic UI", sans-serif; }
+  header { display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); background:#10141c; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; }
+  header nav { margin-left:auto; display:flex; gap:12px; flex-wrap:wrap; }
+  a { color:#7ea2ff; text-decoration:none; font-size:13px; }
+  main { max-width:960px; margin:0 auto; padding:20px; display:grid; gap:16px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .card h2 { margin:0 0 10px; font-size:15px; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:6px; }
+  input { width:100%; border:1px solid var(--line); background:#0f1218; color:var(--text); border-radius:8px; padding:10px 12px; font:inherit; }
+  textarea { width:100%; min-height:140px; border:1px solid var(--line); background:#0f1218; color:#d6dbe3; border-radius:8px; padding:12px; font: 13px/1.5 ui-monospace, Consolas, monospace; resize:vertical; }
+  .hint { font-size:12px; color:var(--muted); line-height:1.6; margin-top:8px; }
+  .warn { font-size:12px; color:#f0d080; background:#2a2410; border:1px solid #4a4020; border-radius:8px; padding:10px 12px; margin-top:10px; display:none; }
+  .warn.show { display:block; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .btn { border:1px solid rgba(255,255,255,.25); background:var(--accent); color:#fff; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px; }
+  .btn.ghost { background:transparent; }
+  .preview { margin-top:12px; border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#000; }
+  .preview iframe { width:100%; aspect-ratio:16/9; border:0; display:block; }
+  #toast { position:fixed; bottom:18px; right:18px; background:#1f6f43; color:#fff; padding:10px 16px; border-radius:8px; opacity:0; transition:.25s; }
+  #toast.show { opacity:1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📋 LP埋め込みコード</h1>
+  <nav>
+    <a href="../">← プレイヤー</a>
+    <a href="../editor/">エディター</a>
+  </nav>
+</header>
+
+<main>
+  <div class="card">
+    <h2>無料デプロイ（Netlify）</h2>
+    <p class="hint">
+      1. GitHub にプロジェクトを push<br>
+      2. <a href="https://app.netlify.com" target="_blank">app.netlify.com</a> でリポジトリを接続<br>
+      3. 発行された <code>https://xxxx.netlify.app</code> を上の公開URLに入力<br>
+      詳細: プロジェクト内 <code>DEPLOY.md</code> を参照
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>公開URL</h2>
+    <label for="publicUrl">デプロイ後のURL（Netlify 等）</label>
+    <input id="publicUrl" placeholder="https://your-project.netlify.app" />
+    <p class="hint">デプロイ前は現在のURLをプレビュー用に表示します。本番LPに貼る前に、デプロイ後のURLを入力して「保存」してください。</p>
+    <div class="warn" id="localWarn">⚠ localhost のURLは他の人のPCでは開けません。デプロイ後のURLを設定してください。</div>
+    <div class="toolbar">
+      <button class="btn" id="btnSaveUrl">URLを保存</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>プレビュー</h2>
+    <div class="preview"><iframe id="previewFrame" title="プレビュー"></iframe></div>
+  </div>
+
+  <div class="card">
+    <h2>レスポンシブ埋め込み（LP推奨）</h2>
+    <p class="hint">ペライチ・STUDIO・WordPress 等の「HTMLブロック」に貼り付け。</p>
+    <textarea id="codeResponsive" readonly></textarea>
+    <div class="toolbar"><button class="btn" data-copy="codeResponsive">コピー</button></div>
+  </div>
+
+  <div class="card">
+    <h2>シンプル iframe</h2>
+    <p class="hint">固定高さ（620px）。シンプルなLP向け。</p>
+    <textarea id="codeIframe" readonly></textarea>
+    <div class="toolbar"><button class="btn" data-copy="codeIframe">コピー</button></div>
+  </div>
+
+  <div class="card">
+    <h2>1ページLP用 HTML（全文）</h2>
+    <p class="hint">広告から直接飛ばす専用LPとして使う場合。</p>
+    <textarea id="codeFull" readonly></textarea>
+    <div class="toolbar"><button class="btn" data-copy="codeFull">コピー</button></div>
+  </div>
+</main>
+
+<div id="toast"></div>
+<script src="../embed.js"></script>
+<script>
+const $ = (s) => document.querySelector(s);
+let scenario = null;
+
+const toast = (msg) => {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2000);
+};
+
+async function load() {
+  scenario = await (await fetch("../scenario.json?_=" + Date.now(), { cache: "no-store" })).json();
+  $("#publicUrl").value = scenario.publicUrl || "";
+  render();
+}
+
+function playerUrl() {
+  const input = normalizePublicUrl($("#publicUrl").value);
+  const fallback = location.origin + location.pathname.replace(/\/embed\/?.*$/, "").replace(/\/$/, "");
+  const base = input || fallback;
+  return base.replace(/\/$/, "") + "/";
+}
+
+function render() {
+  const url = playerUrl();
+  const title = scenario?.title || "インタラクティブ動画";
+  const opts = { title };
+
+  $("#codeResponsive").value = buildResponsiveEmbed(url, opts);
+  $("#codeIframe").value = buildIframeEmbed(url, opts);
+  $("#codeFull").value = buildFullPageSnippet(url, opts);
+  $("#previewFrame").src = url;
+  $("#localWarn").classList.toggle("show", isLocalUrl(url));
+}
+
+async function saveUrl() {
+  scenario.publicUrl = normalizePublicUrl($("#publicUrl").value);
+  try {
+    const res = await fetch("/api/scenario", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(scenario, null, 2),
+    });
+    if (res.ok) { toast("公開URLを保存しました"); render(); return; }
+  } catch (_) {}
+  toast("保存に失敗しました（npm start で起動していますか？）");
+}
+
+$("#publicUrl").addEventListener("input", render);
+$("#btnSaveUrl").onclick = saveUrl;
+
+document.querySelectorAll("[data-copy]").forEach((btn) => {
+  btn.onclick = async () => {
+    const id = btn.getAttribute("data-copy");
+    await navigator.clipboard.writeText($("#" + id).value);
+    toast("コピーしました");
+  };
+});
+
+load();
+</script>
+</body>
+</html>

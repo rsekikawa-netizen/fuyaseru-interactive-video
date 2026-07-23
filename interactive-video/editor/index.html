@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>シナリオエディター</title>
+<style>
+  :root { color-scheme: dark; --bg:#0d0f14; --panel:#141820; --line:#252a36; --accent:#2b6cff; --text:#e8eaed; --muted:#9aa0aa; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, "Segoe UI", "Yu Gothic UI", sans-serif; min-height:100vh; display:grid; grid-template-rows:auto 1fr; }
+  header { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line); background:#10141c; flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0; }
+  header nav { display:flex; gap:10px; margin-left:auto; flex-wrap:wrap; }
+  header a, header button { font-size:13px; }
+  a { color:#7ea2ff; text-decoration:none; }
+  .btn { border:1px solid rgba(255,255,255,.25); background:var(--accent); color:#fff; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; }
+  .btn.ghost { background:transparent; }
+  .btn.danger { background:#8a2b2b; border-color:#8a2b2b; }
+  main { display:grid; grid-template-columns:280px 1fr; min-height:0; }
+  aside { border-right:1px solid var(--line); background:var(--panel); overflow:auto; padding:12px; }
+  aside h2 { font-size:12px; color:var(--muted); margin:0 0 8px; letter-spacing:.08em; }
+  .node-list { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
+  .node-item { text-align:left; border:1px solid var(--line); background:#1a1d26; color:var(--text); border-radius:8px; padding:10px 12px; cursor:pointer; }
+  .node-item.active { border-color:var(--accent); background:#172038; }
+  .node-item .id { font-weight:700; font-size:14px; }
+  .node-item .sub { font-size:11px; color:var(--muted); margin-top:2px; }
+  .field { margin-bottom:12px; }
+  label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  input, textarea, select {
+    width:100%; border:1px solid var(--line); background:#0f1218; color:var(--text);
+    border-radius:8px; padding:8px 10px; font:inherit;
+  }
+  textarea { min-height:72px; resize:vertical; }
+  section { overflow:auto; padding:18px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .card h3 { margin:0 0 12px; font-size:15px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .choices { display:flex; flex-direction:column; gap:8px; }
+  .choice-row { display:grid; grid-template-columns:1fr 140px auto; gap:8px; align-items:center; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  #toast { position:fixed; bottom:18px; right:18px; background:#1f6f43; color:#fff; padding:10px 16px; border-radius:8px; opacity:0; transition:.25s; pointer-events:none; }
+  #toast.show { opacity:1; }
+  .hint { font-size:12px; color:var(--muted); line-height:1.6; }
+  .upload-box {
+    border: 2px dashed var(--line); border-radius: 12px; padding: 20px; text-align: center;
+    background: #0f1218; cursor: pointer; transition: border-color .2s, background .2s;
+  }
+  .upload-box:hover, .upload-box.dragover { border-color: var(--accent); background: #121828; }
+  .upload-box input { display: none; }
+  .upload-box .icon { font-size: 28px; margin-bottom: 6px; }
+  .upload-box .title { font-weight: 600; margin-bottom: 4px; }
+  .video-current { margin-top: 10px; padding: 10px 12px; background: #0f1218; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; word-break: break-all; }
+  .video-preview { margin-top: 10px; width: 100%; max-height: 200px; border-radius: 8px; background: #000; }
+  .upload-progress { margin-top: 8px; font-size: 12px; color: var(--accent); min-height: 18px; }
+  @media (max-width:900px) { main { grid-template-columns:1fr; } aside { border-right:none; border-bottom:1px solid var(--line); max-height:240px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📝 シナリオエディター</h1>
+  <nav>
+    <a href="../">▶ プレイヤー</a>
+    <a href="../map/">🗺 分岐マップ</a>
+    <button class="btn ghost" id="btnLoad">再読込</button>
+    <button class="btn" id="btnSave">JSONを保存</button>
+    <button class="btn ghost" id="btnDownload">ダウンロード</button>
+  </nav>
+</header>
+
+<main>
+  <aside>
+    <h2>プロジェクト</h2>
+    <div class="field">
+      <label>タイトル</label>
+      <input id="metaTitle" />
+    </div>
+    <div class="field">
+      <label>開始ノード ID</label>
+      <input id="metaStart" />
+    </div>
+    <div class="field">
+      <label>公開URL（LP埋め込み用）</label>
+      <input id="metaPublicUrl" placeholder="https://your-project.netlify.app" />
+    </div>
+    <div class="toolbar">
+      <button class="btn" id="btnAddNode">＋ ノード追加</button>
+      <a class="btn ghost" href="../embed/" style="display:inline-block;text-align:center;line-height:1.4">📋 埋め込みコード</a>
+    </div>
+
+    <h2 style="margin-top:18px">ノード一覧</h2>
+    <div class="node-list" id="nodeList"></div>
+    <p class="hint">左のノードを選んで右側で編集します。動画はファイルをアップロードしてください。</p>
+  </aside>
+
+  <section id="editor">
+    <div class="card">
+      <h3 id="editTitle">ノードを選択してください</h3>
+      <div id="editBody" class="hint">左の一覧からノードを選ぶか、「＋ ノード追加」で新規作成します。</div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+let scenario = null;
+let selectedId = null;
+
+const $ = (s) => document.querySelector(s);
+const toast = (msg) => {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+};
+
+async function load() {
+  scenario = await (await fetch("../scenario.json?_=" + Date.now(), { cache: "no-store" })).json();
+  selectedId = scenario.start;
+  renderSidebar();
+  renderEditor();
+}
+
+function renderSidebar() {
+  $("#metaTitle").value = scenario.title || "";
+  $("#metaStart").value = scenario.start || "";
+  $("#metaPublicUrl").value = scenario.publicUrl || "";
+  const list = $("#nodeList");
+  list.innerHTML = "";
+  for (const id of Object.keys(scenario.nodes)) {
+    const n = scenario.nodes[id];
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "node-item" + (id === selectedId ? " active" : "");
+    const kind = n.ending ? `エンディング (${n.endingType || "normal"})` : `分岐 ${(n.choices||[]).length}`;
+    btn.innerHTML = `<div class="id">${id}${id === scenario.start ? " ★" : ""}</div><div class="sub">${n.endingTitle || n.video || kind}</div>`;
+    btn.onclick = () => { selectedId = id; renderSidebar(); renderEditor(); };
+    list.appendChild(btn);
+  }
+}
+
+function renderEditor() {
+  if (!selectedId || !scenario.nodes[selectedId]) {
+    $("#editTitle").textContent = "ノードを選択してください";
+    $("#editBody").innerHTML = '<p class="hint">左の一覧からノードを選ぶか、「＋ ノード追加」で新規作成します。</p>';
+    return;
+  }
+  const id = selectedId;
+  const n = scenario.nodes[id];
+  $("#editTitle").textContent = "ノード: " + id;
+
+  const isEnding = !!n.ending;
+  $("#editBody").innerHTML = `
+    <div class="field"><label>ノード ID</label><input id="fId" value="${esc(id)}" /></div>
+    <div class="field">
+      <label>動画</label>
+      <div class="upload-box" id="uploadBox">
+        <input type="file" id="fUpload" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
+        <div class="icon">🎬</div>
+        <div class="title">クリックまたはドラッグ＆ドロップ</div>
+        <div class="hint">mp4 / webm / mov（最大 500MB）</div>
+      </div>
+      <div class="upload-progress" id="uploadProgress"></div>
+      <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
+      <video class="video-preview" id="videoPreview" controls muted playsinline ${n.video ? `src="../${esc(n.video)}"` : ""}></video>
+      <input type="hidden" id="fVideo" value="${esc(n.video||"")}" />
+    </div>
+    <div class="field"><label><input type="checkbox" id="fEnding" ${isEnding?"checked":""} /> エンディングノード</label></div>
+    <div id="endingFields" style="display:${isEnding?"block":"none"}">
+      <div class="row">
+        <div class="field"><label>エンディングタイトル</label><input id="fEndTitle" value="${esc(n.endingTitle||"")}" /></div>
+        <div class="field"><label>タイプ</label>
+          <select id="fEndType">
+            ${["normal","good","bad","true"].map(t=>`<option value="${t}" ${n.endingType===t?"selected":""}>${t.toUpperCase()}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="branchFields" style="display:${isEnding?"none":"block"}">
+      <div class="field"><label>選択肢の質問文</label><input id="fPrompt" value="${esc(n.prompt||"")}" placeholder="次はどうする?" /></div>
+      <label>分岐選択肢</label>
+      <div class="choices" id="choiceRows"></div>
+      <div class="toolbar"><button type="button" class="btn ghost" id="btnAddChoice">＋ 選択肢追加</button></div>
+    </div>
+    <div class="toolbar" style="margin-top:16px">
+      <button type="button" class="btn" id="btnApply">このノードを反映</button>
+      <button type="button" class="btn danger" id="btnDelete">ノード削除</button>
+      ${id !== scenario.start ? `<button type="button" class="btn ghost" id="btnSetStart">開始ノードに設定</button>` : ""}
+    </div>
+  `;
+
+  const rows = $("#choiceRows");
+  (n.choices || []).forEach((c, i) => rows.appendChild(choiceRow(c, i)));
+  if (!(n.choices||[]).length) rows.appendChild(choiceRow({ label:"", next:"" }, 0));
+
+  $("#fEnding").onchange = (e) => {
+    $("#endingFields").style.display = e.target.checked ? "block" : "none";
+    $("#branchFields").style.display = e.target.checked ? "none" : "block";
+  };
+  $("#btnAddChoice").onclick = () => rows.appendChild(choiceRow({ label:"", next:"" }, rows.children.length));
+  $("#btnApply").onclick = applyNode;
+  $("#btnDelete").onclick = deleteNode;
+  const setStart = $("#btnSetStart");
+  if (setStart) setStart.onclick = () => { scenario.start = id; toast("開始ノードを " + id + " に設定しました"); renderSidebar(); };
+  setupUpload(id);
+}
+
+function setupUpload(nodeId) {
+  const box = $("#uploadBox");
+  const input = $("#fUpload");
+  const progress = $("#uploadProgress");
+
+  box.onclick = () => input.click();
+  box.ondragover = (e) => { e.preventDefault(); box.classList.add("dragover"); };
+  box.ondragleave = () => box.classList.remove("dragover");
+  box.ondrop = (e) => {
+    e.preventDefault();
+    box.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) uploadVideo(nodeId, e.dataTransfer.files[0]);
+  };
+  input.onchange = () => { if (input.files[0]) uploadVideo(nodeId, input.files[0]); input.value = ""; };
+}
+
+async function uploadVideo(nodeId, file) {
+  const progress = $("#uploadProgress");
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (!["mp4", "webm", "mov"].includes(ext || "")) {
+    return alert("mp4 / webm / mov 形式の動画を選んでください");
+  }
+
+  progress.textContent = `アップロード中… ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
+
+  const fd = new FormData();
+  fd.append("file", file);
+
+  try {
+    const res = await fetch(`/api/upload?nodeId=${encodeURIComponent(nodeId)}`, { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || "アップロード失敗");
+
+    $("#fVideo").value = data.path;
+    $("#videoCurrent").textContent = data.path;
+    const preview = $("#videoPreview");
+    preview.src = "../" + data.path + "?_=" + Date.now();
+    progress.textContent = `✅ 保存しました: ${data.filename} (${(data.size / 1024 / 1024).toFixed(1)} MB)`;
+    toast("動画をアップロードしました");
+
+    scenario.nodes[nodeId].video = data.path;
+    await saveJson();
+    renderSidebar();
+  } catch (e) {
+    progress.textContent = "❌ " + e.message;
+    alert("アップロードに失敗しました: " + e.message);
+  }
+}
+
+function choiceRow(c, i) {
+  const div = document.createElement("div");
+  div.className = "choice-row";
+  const nodeIds = Object.keys(scenario.nodes);
+  div.innerHTML = `
+    <input data-k="label" placeholder="ボタンラベル" value="${esc(c.label||"")}" />
+    <select data-k="next">${nodeIds.map(id=>`<option value="${id}" ${c.next===id?"selected":""}>${id}</option>`).join("")}</select>
+    <button type="button" class="btn ghost danger" title="削除">✕</button>
+  `;
+  div.querySelector("button").onclick = () => div.remove();
+  return div;
+}
+
+function applyNode() {
+  const oldId = selectedId;
+  const newId = $("#fId").value.trim();
+  if (!newId) return alert("ノード ID を入力してください");
+
+  let videoPath = $("#fVideo").value.trim();
+  if (!videoPath) return alert("動画をアップロードしてください");
+
+  const node = {
+    video: videoPath,
+    ending: $("#fEnding").checked,
+  };
+  if (node.ending) {
+    node.endingTitle = $("#fEndTitle").value.trim();
+    node.endingType = $("#fEndType").value;
+  } else {
+    node.prompt = $("#fPrompt").value.trim();
+    node.choices = [...$("#choiceRows").querySelectorAll(".choice-row")].map((row) => ({
+      label: row.querySelector('[data-k="label"]').value.trim(),
+      next: row.querySelector('[data-k="next"]').value,
+    })).filter((c) => c.label && c.next);
+  }
+
+  if (newId !== oldId) {
+    if (scenario.nodes[newId]) return alert("ID " + newId + " は既に存在します");
+    scenario.nodes[newId] = node;
+    delete scenario.nodes[oldId];
+    if (scenario.start === oldId) scenario.start = newId;
+    for (const n of Object.values(scenario.nodes)) {
+      for (const c of (n.choices || [])) if (c.next === oldId) c.next = newId;
+    }
+    selectedId = newId;
+  } else {
+    scenario.nodes[oldId] = node;
+  }
+  toast("ノードを反映しました");
+  renderSidebar();
+  renderEditor();
+  saveJson();
+}
+
+function deleteNode() {
+  const id = selectedId;
+  if (!confirm(`ノード "${id}" を削除しますか?`)) return;
+  delete scenario.nodes[id];
+  if (scenario.start === id) scenario.start = Object.keys(scenario.nodes)[0] || "";
+  selectedId = scenario.start;
+  renderSidebar();
+  renderEditor();
+  toast("削除しました");
+}
+
+function syncMeta() {
+  scenario.title = $("#metaTitle").value.trim();
+  scenario.start = $("#metaStart").value.trim();
+  scenario.publicUrl = ($("#metaPublicUrl")?.value || "").trim().replace(/\/+$/, "");
+}
+
+async function saveJson() {
+  syncMeta();
+  try {
+    const res = await fetch("/api/scenario", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(scenario, null, 2),
+    });
+    if (res.ok) {
+      toast("scenario.json を保存しました");
+      return;
+    }
+  } catch (_) {}
+  const blob = new Blob([JSON.stringify(scenario, null, 2)], { type: "application/json" });
+  downloadBlob(blob, "scenario.json");
+  toast("ダウンロードしました。interactive-video/ に上書き保存してください");
+}
+
+function downloadBlob(blob, name) {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+}
+
+$("#btnLoad").onclick = load;
+$("#btnSave").onclick = saveJson;
+$("#btnDownload").onclick = saveJson;
+$("#metaTitle").onchange = syncMeta;
+$("#metaStart").onchange = syncMeta;
+$("#metaPublicUrl").onchange = () => { syncMeta(); saveJson(); };
+
+$("#btnAddNode").onclick = () => {
+  let base = "scene";
+  let i = 1;
+  while (scenario.nodes[base + i]) i++;
+  const id = base + i;
+  scenario.nodes[id] = { video: "videos/" + id + ".mp4", prompt: "次は?", choices: [] };
+  selectedId = id;
+  renderSidebar();
+  renderEditor();
+  toast("ノード " + id + " を追加しました");
+};
+
+load();
+</script>
+</body>
+</html>
