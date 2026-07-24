@@ -276,7 +276,7 @@
 
 <div id="toast"></div>
 
-<script src="../project.js?v=2"></script>
+<script src="../project.js?v=5"></script>
 <script>
 const projectId = getProjectId();
 let scenario = { title: "", start: "", publicUrl: "", nodes: {} };
@@ -313,9 +313,7 @@ function setLinks() {
 async function load() {
   setLinks();
   try {
-    const res = await fetch(scenarioUrl(projectId), { cache: "no-store" });
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    scenario = await res.json();
+    scenario = await loadScenarioData(projectId);
     if (!scenario.nodes || typeof scenario.nodes !== "object") scenario.nodes = {};
   } catch (e) {
     console.error(e);

@@ -10,14 +10,14 @@
   NODE_VERSION = "20"
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api"
+  from = "/api/media"
+  to = "/.netlify/functions/media"
   status = 200
   force = true
 
 [[redirects]]
-  from = "/api/media"
-  to = "/.netlify/functions/media"
+  from = "/api/*"
+  to = "/.netlify/functions/api"
   status = 200
   force = true
 

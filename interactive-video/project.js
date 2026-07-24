@@ -16,12 +16,42 @@ function projectRoot(id) {
   return `/projects/${encodeURIComponent(id)}/`;
 }
 
+/** 本番の入口 URL（Netlify） */
+const HOSTED_APP_ORIGIN = "https://fuyaseru-interactive-video.netlify.app";
+
+function staticAssetUrl(relPath, id) {
+  if (!relPath) return "";
+  if (/^https?:\/\//.test(relPath)) return relPath;
+  const clean = relPath.replace(/^\//, "");
+  id = id || getProjectId();
+  if (clean.startsWith("projects/")) return "/" + clean;
+  return projectRoot(id) + clean;
+}
+
 function scenarioUrl(id) {
   id = id || getProjectId();
   if (isHostedApp()) {
     return `/api/scenario?project=${encodeURIComponent(id)}&_=${Date.now()}`;
   }
   return `${projectRoot(id)}scenario.json?_=${Date.now()}`;
+}
+
+/** シナリオ JSON（本番は API → 静的の順で試行） */
+async function loadScenarioData(id) {
+  id = id || getProjectId();
+  const urls = isHostedApp()
+    ? [
+        `/api/scenario?project=${encodeURIComponent(id)}&_=${Date.now()}`,
+        `${projectRoot(id)}scenario.json?_=${Date.now()}`,
+      ]
+    : [scenarioUrl(id)];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { cache: "no-store" });
+      if (r.ok) return await r.json();
+    } catch (_) {}
+  }
+  throw new Error("scenario.json not found");
 }
 
 function videoUrl(relPath, id) {
@@ -41,6 +71,10 @@ function videoUrl(relPath, id) {
   }
   if (clean.startsWith("projects/")) return "/" + clean;
   return projectRoot(id) + clean;
+}
+
+function staticVideoUrl(relPath, id) {
+  return staticAssetUrl(relPath, id);
 }
 
 function withProject(href, id) {
@@ -70,4 +104,19 @@ async function hasProjectApi() {
   return _projectApiReady;
 }
 
-if (typeof module !== "undefined") module.exports = { getProjectId, projectRoot, scenarioUrl, videoUrl, withProject, isLocalDev, hasProjectApi };
+if (typeof module !== "undefined") {
+  module.exports = {
+    getProjectId,
+    projectRoot,
+    scenarioUrl,
+    loadScenarioData,
+    videoUrl,
+    staticVideoUrl,
+    staticAssetUrl,
+    withProject,
+    isLocalDev,
+    isHostedApp,
+    hasProjectApi,
+    HOSTED_APP_ORIGIN,
+  };
+}

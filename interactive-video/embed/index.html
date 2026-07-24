@@ -92,7 +92,7 @@
 
 <div id="toast"></div>
 <script src="../embed.js"></script>
-<script src="../project.js?v=4"></script>
+<script src="../project.js?v=5"></script>
 <script>
 const projectId = getProjectId();
 const $ = (s) => document.querySelector(s);
@@ -111,7 +111,7 @@ const toast = (msg) => {
 
 async function load() {
   setLinks();
-  scenario = await (await fetch(scenarioUrl(projectId), { cache: "no-store" })).json();
+  scenario = await loadScenarioData(projectId);
   const api = await hasProjectApi();
   if (api) {
     $("#fullAppHint").style.display = "block";

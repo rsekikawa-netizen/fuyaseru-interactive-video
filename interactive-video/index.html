@@ -53,7 +53,7 @@
   </div>
 </main>
 <div id="toast"></div>
-<script src="project.js?v=4"></script>
+<script src="project.js?v=5"></script>
 <script>
 const $ = (s) => document.querySelector(s);
 const toast = (m) => { const t=$("#toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); };
@@ -68,13 +68,20 @@ async function initHub() {
     return;
   }
   const api = await hasProjectApi();
-  if (!api) {
+  if (!api && !isHostedApp()) {
     location.replace("play.html?project=default");
     return;
+  }
+  if (!api && isHostedApp()) {
+    toast("保存 API 未デプロイ — 一覧は閲覧のみ。Netlify で Git 連携ビルド後に編集できます");
   }
   document.getElementById("hubNote")?.classList.add("show");
   loadList();
   bindCreate();
+  if (!api) {
+    $("#btnCreate").disabled = true;
+    $("#newId").placeholder = "（API デプロイ後に利用可）";
+  }
 }
 
 async function loadList() {

@@ -63,8 +63,7 @@ async function setLinks() {
 async function boot() {
   await setLinks();
   try {
-    const res = await fetch(scenarioUrl(projectId), { cache: "no-store" });
-    scenario = await res.json();
+    scenario = await loadScenarioData(projectId);
     document.title = scenario.title || "インタラクティブ動画";
     bindControls();
     restart();
@@ -110,6 +109,12 @@ function go(nodeId, choiceLabel) {
   }
 
   player.src = videoUrl(node.video, projectId);
+  player.onerror = () => {
+    if (typeof isHostedApp === "function" && isHostedApp()) {
+      const fb = staticVideoUrl(node.video, projectId);
+      if (fb && player.src !== fb) player.src = fb;
+    }
+  };
   if (node.poster) player.poster = videoUrl(node.poster, projectId);
   player.muted = scenario.player?.muted ?? false;
   $("#btnMute").textContent = player.muted ? "🔇" : "🔊";
