@@ -59,7 +59,7 @@ let _projectApiReady = null;
 
 /** Node サーバー（作成・保存・UP）が使えるか — クラウド本番も true */
 async function hasProjectApi() {
-  if (isLocalDev() || isHostedApp()) return true;
+  if (isLocalDev()) return true;
   if (_projectApiReady !== null) return _projectApiReady;
   try {
     const r = await fetch("/api/projects", { cache: "no-store" });

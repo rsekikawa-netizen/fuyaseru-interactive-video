@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "description": "ブラウザで動く分岐型インタラクティブ動画ツール一式",
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  },
   "scripts": {
     "start": "node scripts/dev-server.mjs",
     "start:win": "powershell -NoProfile -ExecutionPolicy Bypass -File start.ps1",

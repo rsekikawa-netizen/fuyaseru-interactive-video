@@ -1,8 +1,6 @@
-# Netlify — リポジトリルートから読む場合（base = interactive-video）
+# Netlify（Base directory = interactive-video 想定）
 
 [build]
-  base = "interactive-video"
-  publish = "."
   command = "npm install && node netlify/seed-blobs.mjs"
   functions = "netlify/functions"
 
@@ -21,7 +19,6 @@
   status = 200
   force = true
 
-# 動画・JSON の配信設定
 [[headers]]
   for = "/videos/*"
   [headers.values]
