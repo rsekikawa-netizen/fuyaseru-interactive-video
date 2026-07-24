@@ -5,9 +5,15 @@ function normalizePublicUrl(url) {
   return String(url || "").trim().replace(/\/+$/, "");
 }
 
-function getEmbedPlayerUrl(scenario, fallbackOrigin) {
+function getEmbedPlayerUrl(scenario, fallbackOrigin, projectId = "default") {
   const base = normalizePublicUrl(scenario?.publicUrl) || normalizePublicUrl(fallbackOrigin);
-  return base ? base + "/" : "";
+  return base ? buildPlayerUrl(base, projectId) : "";
+}
+
+function buildPlayerUrl(base, projectId = "default") {
+  let b = normalizePublicUrl(base);
+  b = b.replace(/\/play\.html(\?.*)?$/i, "");
+  return `${b}/play.html?project=${encodeURIComponent(projectId)}`;
 }
 
 function isLocalUrl(url) {
@@ -61,6 +67,6 @@ ${buildResponsiveEmbed(playerUrl, opts)}
 }
 
 if (typeof module !== "undefined") module.exports = {
-  normalizePublicUrl, getEmbedPlayerUrl, isLocalUrl,
+  normalizePublicUrl, getEmbedPlayerUrl, buildPlayerUrl, isLocalUrl,
   buildIframeEmbed, buildResponsiveEmbed, buildFullPageSnippet,
 };

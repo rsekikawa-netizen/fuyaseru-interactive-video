@@ -1,0 +1,19 @@
+{
+  "projects": [
+    {
+      "id": "default",
+      "title": "サンプル分岐動画",
+      "createdAt": "2026-07-23T00:00:00.000Z"
+    },
+    {
+      "id": "test",
+      "title": "test",
+      "createdAt": "2026-07-23T06:24:33.908Z"
+    },
+    {
+      "id": "fuyaseru-sample",
+      "title": "フヤセルジンングル（ボタンテスト）",
+      "createdAt": "2026-07-24T00:00:00.000Z"
+    }
+  ]
+}

@@ -101,7 +101,10 @@ npm start             # http://localhost:3000 を開く
 | `start` | 最初に再生するノード ID |
 | `nodes.<id>.video` | mp4 のパス（`videos/` 推奨） |
 | `nodes.<id>.prompt` | 選択肢の上に表示する質問 |
-| `nodes.<id>.choices` | `{ label, next }` の配列 |
+| `nodes.<id>.choices` | `{ label, next?, link?, appear?, variant?, image? }` — `appear`: `none` / `fade-in` / `fade-in-slow` / `pop` / `rise`（省略時 `rise`） |
+| `nodes.<id>.hotspots` | 動画内ボタン `{ at, label?, next?, link?, action?, openInNewTab?, x, y, image?, width?, height?, duration?, variant?, appear?, disappear? }` — `appear`（省略時 `pop`）・`disappear`（省略時 `none`）。非表示は表示時間終了・クリック時 |
+| `nodes.<id>.choicesAt` | 選択肢表示タイミング（秒）。未設定は動画終了後 |
+| `nodes.<id>.sceneTitle` | シーン開始時のタイトル表示 |
 | `nodes.<id>.ending` | `true` でエンディング |
 | `nodes.<id>.endingType` | `good` / `bad` / `true` / `normal` |
 
@@ -141,14 +144,17 @@ npm run optimize -- videos/intro.mp4
 
 ## 無料デプロイ（Netlify / GitHub Pages）
 
-設定ファイルはリポジトリに含まれています。**詳細手順は [DEPLOY.md](DEPLOY.md) を参照。**
+**視聴・埋め込み向け**です。エディター・動画アップロードは **ローカル** または **[フル公開（Render 等）](./DEPLOY-FULL.md)** を使ってください。
 
 | ファイル | 用途 |
 |----------|------|
-| `/netlify.toml` | Netlify 無料デプロイ設定 |
-| `/.github/workflows/deploy-pages.yml` | GitHub Pages 自動デプロイ |
+| `/netlify.toml` | Netlify（**視聴専用**） |
+| `render.yaml` | Render（**編集・保存まで Web 上で**） |
+| `DEPLOY-FULL.md` | 上記の違いと Render 手順 |
+| `DEPLOY.md` | Netlify / GitHub Pages 手順 |
+| `/.github/workflows/netlify-deploy.yml` | Netlify 自動デプロイ（要 Secrets） |
 
-**最短手順（Netlify）:**
+**最短手順（Netlify・視聴のみ）:**
 1. GitHub に push
 2. https://app.netlify.com でリポジトリを接続
 3. 発行された URL を embed ページに設定

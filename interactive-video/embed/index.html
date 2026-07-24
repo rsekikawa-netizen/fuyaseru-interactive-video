@@ -32,10 +32,11 @@
 </head>
 <body>
 <header>
-  <h1>📋 LP埋め込みコード</h1>
+  <h1>📋 LP埋め込みコード <span id="projectLabel" style="font-size:12px;color:var(--muted);font-weight:400"></span></h1>
   <nav>
-    <a href="../">← プレイヤー</a>
-    <a href="../editor/">エディター</a>
+    <a id="linkHome" href="../">📁 プロジェクト</a>
+    <a id="linkPlay" href="../play.html">← プレイヤー</a>
+    <a id="linkEditor" href="../editor/">エディター</a>
   </nav>
 </header>
 
@@ -51,10 +52,11 @@
   </div>
 
   <div class="card">
-    <h2>公開URL</h2>
-    <label for="publicUrl">デプロイ後のURL（Netlify 等）</label>
-    <input id="publicUrl" placeholder="https://your-project.netlify.app" />
-    <p class="hint">デプロイ前は現在のURLをプレビュー用に表示します。本番LPに貼る前に、デプロイ後のURLを入力して「保存」してください。</p>
+    <h2>公開URL（埋め込み先のベース）</h2>
+    <p class="hint full-app-hint" id="fullAppHint" style="display:none">このサイト自体が制作サーバーです。通常は下のURL（このサイトのトップ）のまま「URLを保存」してください。発行した iframe は同じドメインで再生されます。</p>
+    <label for="publicUrl">公開URL</label>
+    <input id="publicUrl" placeholder="https://your-app.onrender.com" />
+    <p class="hint">クラウド本番では自動でこのサイトのURLが入ります。別ドメイン（Netlify 視聴専用など）に載せる場合だけ変更してください。</p>
     <div class="warn" id="localWarn">⚠ localhost のURLは他の人のPCでは開けません。デプロイ後のURLを設定してください。</div>
     <div class="toolbar">
       <button class="btn" id="btnSaveUrl">URLを保存</button>
@@ -90,9 +92,17 @@
 
 <div id="toast"></div>
 <script src="../embed.js"></script>
+<script src="../project.js?v=4"></script>
 <script>
+const projectId = getProjectId();
 const $ = (s) => document.querySelector(s);
 let scenario = null;
+
+function setLinks() {
+  $("#projectLabel").textContent = `[${projectId}]`;
+  $("#linkPlay").href = withProject("../play.html", projectId);
+  $("#linkEditor").href = withProject("../editor/", projectId);
+}
 
 const toast = (msg) => {
   const t = $("#toast"); t.textContent = msg; t.classList.add("show");
@@ -100,8 +110,15 @@ const toast = (msg) => {
 };
 
 async function load() {
-  scenario = await (await fetch("../scenario.json?_=" + Date.now(), { cache: "no-store" })).json();
-  $("#publicUrl").value = scenario.publicUrl || "";
+  setLinks();
+  scenario = await (await fetch(scenarioUrl(projectId), { cache: "no-store" })).json();
+  const api = await hasProjectApi();
+  if (api) {
+    $("#fullAppHint").style.display = "block";
+    $("#localWarn").classList.remove("show");
+    if (!scenario.publicUrl) scenario.publicUrl = location.origin.replace(/\/+$/, "");
+  }
+  $("#publicUrl").value = scenario.publicUrl || location.origin.replace(/\/+$/, "");
   render();
 }
 
@@ -109,7 +126,7 @@ function playerUrl() {
   const input = normalizePublicUrl($("#publicUrl").value);
   const fallback = location.origin + location.pathname.replace(/\/embed\/?.*$/, "").replace(/\/$/, "");
   const base = input || fallback;
-  return base.replace(/\/$/, "") + "/";
+  return buildPlayerUrl(base, projectId);
 }
 
 function render() {
@@ -127,7 +144,7 @@ function render() {
 async function saveUrl() {
   scenario.publicUrl = normalizePublicUrl($("#publicUrl").value);
   try {
-    const res = await fetch("/api/scenario", {
+    const res = await fetch("/api/scenario?project=" + encodeURIComponent(projectId), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(scenario, null, 2),

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>インタラクティブ動画</title>
+<link rel="stylesheet" href="player.css?v=3" />
+</head>
+<body>
+  <div id="stage">
+    <span id="projectBadge"></span>
+    <div id="sceneTitle"></div>
+    <video id="player" playsinline preload="auto"></video>
+    <div id="hotspotLayer"></div>
+    <div id="overlay">
+      <p id="prompt"></p>
+      <p id="promptSub"></p>
+      <div class="choices" id="choices"></div>
+    </div>
+    <div id="ending">
+      <div class="kicker">ENDING</div>
+      <span class="badge" id="endBadge"></span>
+      <h2 id="endTitle"></h2>
+      <div class="path" id="endPath"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="endRestart">最初からやり直す</button>
+        <button type="button" class="btn ghost" id="endBack">ひとつ前の選択に戻る</button>
+        <button type="button" class="btn ghost" id="btnShare">🔗 共有</button>
+      </div>
+    </div>
+    <div id="hint">読み込み中…</div>
+    <div id="topActions">
+      <button type="button" id="btnSkipChoices" title="選択肢へ">⏭ 選択肢へ</button>
+      <button type="button" id="replay" title="最初から">↻ 最初から</button>
+    </div>
+    <div id="controls">
+      <button type="button" id="btnPlay" title="再生/一時停止">▶</button>
+      <button type="button" id="btnMute" title="ミュート">🔊</button>
+      <input id="volume" type="range" min="0" max="1" step="0.05" value="1" aria-label="音量" />
+      <div id="timeLabel">0:00 / 0:00</div>
+      <div id="progress"><div id="fill"></div></div>
+      <button type="button" id="btnFs" title="全画面">⛶</button>
+    </div>
+  </div>
+  <div id="history"></div>
+  <p id="adminBar">
+    <a href="./">📁 プロジェクト</a>
+    <a id="linkEditor" href="editor/">📝 エディター</a>
+    <a id="linkMap" href="map/" target="_blank">🗺 分岐マップ</a>
+    <a id="linkEmbed" href="embed/">📋 埋め込みコード</a>
+  </p>
+<script src="project.js?v=4"></script>
+<script src="player.js?v=4"></script>
+</body>
+</html>

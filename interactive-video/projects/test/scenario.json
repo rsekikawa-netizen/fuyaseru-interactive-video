@@ -1,0 +1,23 @@
+{
+  "title": "test",
+  "publicUrl": "https://fuyaseru-interactive-video.netlify.app",
+  "start": "intro",
+  "nodes": {
+    "intro": {
+      "video": "videos/intro.mp4",
+      "ending": false,
+      "prompt": "次はどうする?",
+      "choices": [
+        {
+          "label": "先乗りへ進む",
+          "next": "先乗り"
+        }
+      ]
+    },
+    "先乗り": {
+      "video": "videos/scene1.mp4",
+      "prompt": "次は?",
+      "choices": []
+    }
+  }
+}

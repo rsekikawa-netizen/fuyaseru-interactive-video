@@ -1,0 +1,58 @@
+{
+  "title": "フヤセルジンングル（ボタンテスト）",
+  "player": {
+    "autoplay": true
+  },
+  "start": "main",
+  "nodes": {
+    "main": {
+      "video": "videos/フヤセルジンングル.mp4",
+      "sceneTitle": "フヤセルジンングル — デモ",
+      "prompt": "動画のあと — ボタンをクリックしてください",
+      "promptSub": "数字キー 1〜3 でも選べます",
+      "hotspots": [
+        {
+          "at": 1.2,
+          "label": "👆 ここをタップ（Aへ）",
+          "next": "result_a",
+          "x": 28,
+          "y": 62,
+          "variant": "success",
+          "duration": 8
+        },
+        {
+          "at": 3.5,
+          "label": "⚡ ショートカット（Bへ）",
+          "next": "result_b",
+          "x": 72,
+          "y": 58,
+          "variant": "accent",
+          "duration": 6
+        }
+      ],
+      "choices": [
+        { "label": "🔵 青ボタン（A）", "next": "result_a", "variant": "primary" },
+        { "label": "🟢 緑ボタン（B）", "next": "result_b", "variant": "success" },
+        { "label": "🟡 黄ボタン（C）", "next": "result_c", "variant": "warning" }
+      ]
+    },
+    "result_a": {
+      "video": "videos/フヤセルジンングル.mp4",
+      "ending": true,
+      "endingTitle": "A を選びました",
+      "endingType": "good"
+    },
+    "result_b": {
+      "video": "videos/フヤセルジンングル.mp4",
+      "ending": true,
+      "endingTitle": "B を選びました",
+      "endingType": "true"
+    },
+    "result_c": {
+      "video": "videos/フヤセルジンングル.mp4",
+      "ending": true,
+      "endingTitle": "C を選びました",
+      "endingType": "normal"
+    }
+  }
+}

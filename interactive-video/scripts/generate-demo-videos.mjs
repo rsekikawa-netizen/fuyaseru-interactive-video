@@ -9,8 +9,10 @@ import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const videosDir = join(root, "videos");
-const scenario = JSON.parse(readFileSync(join(root, "scenario.json"), "utf8"));
+const projectId = process.argv[2] || "default";
+const projectDir = join(root, "projects", projectId);
+const videosDir = join(projectDir, "videos");
+const scenario = JSON.parse(readFileSync(join(projectDir, "scenario.json"), "utf8"));
 
 function hasFfmpeg() {
   const r = spawnSync("ffmpeg", ["-version"], { encoding: "utf8", shell: true });

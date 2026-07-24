@@ -1,16 +1,21 @@
 #!/usr/bin/env node
 /**
- * 静的ファイル配信 + scenario.json 保存 + 動画アップロード API
+ * 静的ファイル配信 + マルチプロジェクト API
  */
 import { createServer } from "node:http";
-import { readFileSync, writeFileSync, existsSync, statSync, createReadStream, mkdirSync } from "node:fs";
+import {
+  readFileSync, writeFileSync, existsSync, statSync, createReadStream,
+  mkdirSync, rmSync, cpSync, readdirSync,
+} from "node:fs";
 import { dirname, join, extname, resolve, basename } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const videosDir = join(root, "videos");
+const projectsRoot = join(root, "projects");
+const registryPath = join(projectsRoot, "index.json");
+const legacyScenarioPath = join(root, "scenario.json");
+const legacyVideosDir = join(root, "videos");
 const port = Number(process.env.PORT || 3000);
-const scenarioPath = join(root, "scenario.json");
 const MAX_UPLOAD_BYTES = 500 * 1024 * 1024;
 
 const MIME = {
@@ -23,8 +28,24 @@ const MIME = {
   ".mov": "video/quicktime",
   ".png": "image/png",
   ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
+};
+
+const EMPTY_SCENARIO = {
+  title: "新規プロジェクト",
+  publicUrl: "",
+  start: "intro",
+  nodes: {
+    intro: {
+      video: "videos/intro.mp4",
+      prompt: "次はどうする?",
+      choices: [],
+    },
+  },
 };
 
 function send(res, status, body, type = "text/plain; charset=utf-8") {
@@ -36,11 +57,87 @@ function json(res, status, obj) {
   send(res, status, JSON.stringify(obj), "application/json");
 }
 
+function sanitizeProjectId(id) {
+  const s = String(id || "").trim();
+  if (!/^[a-zA-Z0-9_-]+$/.test(s)) return null;
+  return s;
+}
+
+function projectDir(id) {
+  return join(projectsRoot, id);
+}
+
+function scenarioPath(id) {
+  return join(projectDir(id), "scenario.json");
+}
+
+function videosDir(id) {
+  return join(projectDir(id), "videos");
+}
+
+function assetsDir(id) {
+  return join(projectDir(id), "assets");
+}
+
+function readRegistry() {
+  if (!existsSync(registryPath)) return { projects: [] };
+  return JSON.parse(readFileSync(registryPath, "utf8"));
+}
+
+function writeRegistry(data) {
+  mkdirSync(projectsRoot, { recursive: true });
+  writeFileSync(registryPath, JSON.stringify(data, null, 2) + "\n", "utf8");
+}
+
+function ensureDefaultProject() {
+  mkdirSync(projectsRoot, { recursive: true });
+  const defDir = projectDir("default");
+  const defScenario = scenarioPath("default");
+  const defVideos = videosDir("default");
+
+  if (!existsSync(defScenario) && existsSync(legacyScenarioPath)) {
+    mkdirSync(defDir, { recursive: true });
+    cpSync(legacyScenarioPath, defScenario);
+  }
+  if (existsSync(legacyVideosDir) && !existsSync(defVideos)) {
+    mkdirSync(defVideos, { recursive: true });
+    for (const f of readdirSync(legacyVideosDir)) {
+      cpSync(join(legacyVideosDir, f), join(defVideos, f), { recursive: true });
+    }
+  }
+  if (!existsSync(defScenario)) {
+    mkdirSync(defVideos, { recursive: true });
+    writeFileSync(defScenario, JSON.stringify(EMPTY_SCENARIO, null, 2) + "\n", "utf8");
+  }
+
+  const reg = readRegistry();
+  if (!reg.projects.some((p) => p.id === "default")) {
+    let title = "default";
+    try { title = JSON.parse(readFileSync(defScenario, "utf8")).title || title; } catch (_) {}
+    reg.projects.unshift({ id: "default", title, createdAt: new Date().toISOString() });
+    writeRegistry(reg);
+  }
+}
+
+ensureDefaultProject();
+
+function getProjectId(url) {
+  return sanitizeProjectId(url.searchParams.get("project")) || "default";
+}
+
 function sanitizeFilename(name, fallback = "upload.mp4") {
   const base = basename(String(name || fallback)).replace(/[^\w\u3000-\u9fff.\-()+ ]+/g, "_");
   const ext = extname(base).toLowerCase();
   const allowed = [".mp4", ".webm", ".mov"];
   if (!allowed.includes(ext)) return (base.replace(/\.[^.]+$/, "") || "upload") + ".mp4";
+  return base || fallback;
+}
+
+function sanitizeImageFilename(name, fallback = "button.png") {
+  const base = basename(String(name || fallback)).replace(/[^\w\u3000-\u9fff.\-()+ ]+/g, "_");
+  const ext = extname(base).toLowerCase();
+  const allowed = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
+  if (!allowed.includes(ext)) return (base.replace(/\.[^.]+$/, "") || "button") + ".png";
   return base || fallback;
 }
 
@@ -80,8 +177,10 @@ function parseMultipart(buffer, boundary) {
 }
 
 async function handleUpload(req, res, url) {
-  mkdirSync(videosDir, { recursive: true });
+  const projectId = getProjectId(url);
+  const kind = url.searchParams.get("kind") || "video";
   const nodeId = url.searchParams.get("nodeId") || "";
+  const assetId = url.searchParams.get("assetId") || "";
   let filename = url.searchParams.get("filename") || "";
   let data;
 
@@ -96,8 +195,32 @@ async function handleUpload(req, res, url) {
     if (!filename) filename = filePart.filename;
   } else {
     data = await readBody(req);
-    if (!filename) filename = req.headers["x-filename"] || "upload.mp4";
+    if (!filename) filename = req.headers["x-filename"] || (kind === "image" ? "button.png" : "upload.mp4");
   }
+
+  if (kind === "image") {
+    const adir = assetsDir(projectId);
+    mkdirSync(adir, { recursive: true });
+    const safe = sanitizeImageFilename(filename);
+    const stem = String(assetId || "btn").replace(/[^\w-]+/g, "_").slice(0, 48) || "btn";
+    const outName = `${stem}-${Date.now()}${extname(safe) || ".png"}`;
+    const outPath = resolve(adir, outName);
+    if (!outPath.startsWith(resolve(adir))) {
+      return json(res, 403, { ok: false, error: "保存先が不正です" });
+    }
+    writeFileSync(outPath, data);
+    return json(res, 200, {
+      ok: true,
+      kind: "image",
+      path: "assets/" + outName,
+      filename: outName,
+      size: data.length,
+      project: projectId,
+    });
+  }
+
+  const vdir = videosDir(projectId);
+  mkdirSync(vdir, { recursive: true });
 
   if (nodeId) {
     const ext = extname(sanitizeFilename(filename)).toLowerCase() || ".mp4";
@@ -106,13 +229,58 @@ async function handleUpload(req, res, url) {
     filename = sanitizeFilename(filename);
   }
 
-  const outPath = resolve(videosDir, filename);
-  if (!outPath.startsWith(resolve(videosDir))) {
+  const outPath = resolve(vdir, filename);
+  if (!outPath.startsWith(resolve(vdir))) {
     return json(res, 403, { ok: false, error: "保存先が不正です" });
   }
 
   writeFileSync(outPath, data);
-  return json(res, 200, { ok: true, path: "videos/" + filename, filename, size: data.length });
+  return json(res, 200, { ok: true, path: "videos/" + filename, filename, size: data.length, project: projectId });
+}
+
+function handleListProjects(res) {
+  const reg = readRegistry();
+  for (const p of reg.projects) {
+    const sp = scenarioPath(p.id);
+    if (existsSync(sp)) {
+      try { p.title = JSON.parse(readFileSync(sp, "utf8")).title || p.title; } catch (_) {}
+    }
+  }
+  return json(res, 200, reg);
+}
+
+function handleCreateProject(req, res) {
+  return readBody(req, 64 * 1024).then((buf) => {
+    const body = JSON.parse(buf.toString("utf8"));
+    const id = sanitizeProjectId(body.id);
+    if (!id) return json(res, 400, { ok: false, error: "ID は英数字・ハイフン・アンダースコアのみ" });
+    if (existsSync(projectDir(id))) return json(res, 409, { ok: false, error: "ID が既に存在します" });
+
+    const title = String(body.title || id).trim();
+    mkdirSync(videosDir(id), { recursive: true });
+    mkdirSync(assetsDir(id), { recursive: true });
+    const scenario = { ...EMPTY_SCENARIO, title };
+    writeFileSync(scenarioPath(id), JSON.stringify(scenario, null, 2) + "\n", "utf8");
+
+    const reg = readRegistry();
+    reg.projects.push({ id, title, createdAt: new Date().toISOString() });
+    writeRegistry(reg);
+    return json(res, 201, { ok: true, id, title });
+  });
+}
+
+function handleDeleteProject(url, res) {
+  const id = sanitizeProjectId(url.searchParams.get("id"));
+  if (!id) return json(res, 400, { ok: false, error: "project id が必要です" });
+  if (id === "default") return json(res, 403, { ok: false, error: "default プロジェクトは削除できません" });
+
+  const dir = projectDir(id);
+  if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
+
+  const reg = readRegistry();
+  reg.projects = reg.projects.filter((p) => p.id !== id);
+  writeRegistry(reg);
+  return json(res, 200, { ok: true });
 }
 
 function serveStatic(req, res) {
@@ -167,7 +335,7 @@ function streamFile(res, filePath, req) {
 
 const server = createServer(async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-Filename");
 
   if (req.method === "OPTIONS") return send(res, 204, "");
@@ -175,10 +343,31 @@ const server = createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
 
   try {
+    if (req.method === "GET" && url.pathname === "/api/projects") {
+      return handleListProjects(res);
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/projects") {
+      return await handleCreateProject(req, res);
+    }
+
+    if (req.method === "DELETE" && url.pathname === "/api/projects") {
+      return handleDeleteProject(url, res);
+    }
+
     if (req.method === "POST" && url.pathname === "/api/scenario") {
+      const projectId = getProjectId(url);
       const body = JSON.parse((await readBody(req, 2 * 1024 * 1024)).toString("utf8"));
-      writeFileSync(scenarioPath, JSON.stringify(body, null, 2) + "\n", "utf8");
-      return json(res, 200, { ok: true });
+      mkdirSync(projectDir(projectId), { recursive: true });
+      writeFileSync(scenarioPath(projectId), JSON.stringify(body, null, 2) + "\n", "utf8");
+
+      const reg = readRegistry();
+      const entry = reg.projects.find((p) => p.id === projectId);
+      if (entry && body.title) {
+        entry.title = body.title;
+        writeRegistry(reg);
+      }
+      return json(res, 200, { ok: true, project: projectId });
     }
 
     if (req.method === "POST" && url.pathname === "/api/upload") {
@@ -186,8 +375,10 @@ const server = createServer(async (req, res) => {
     }
 
     if (req.method === "GET" && url.pathname === "/api/scenario") {
-      if (!existsSync(scenarioPath)) return send(res, 404, "scenario.json not found");
-      return streamFile(res, scenarioPath, req);
+      const projectId = getProjectId(url);
+      const sp = scenarioPath(projectId);
+      if (!existsSync(sp)) return send(res, 404, "scenario.json not found");
+      return streamFile(res, sp, req);
     }
 
     if (req.method === "GET") return serveStatic(req, res);
@@ -197,10 +388,12 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(port, () => {
-  console.log(`\n  インタラクティブ動画 — 開発サーバー`);
-  console.log(`  プレイヤー:  http://localhost:${port}`);
-  console.log(`  エディター:  http://localhost:${port}/editor/`);
-  console.log(`  分岐マップ:  http://localhost:${port}/map/`);
-  console.log(`  埋め込み:    http://localhost:${port}/embed/\n`);
+server.listen(port, "0.0.0.0", () => {
+  const host = process.env.PUBLIC_URL || `http://localhost:${port}`;
+  console.log(`\n  インタラクティブ動画 — サーバー (port ${port})`);
+  console.log(`  プロジェクト: ${host}/`);
+  console.log(`  プレイヤー:   ${host}/play.html?project=default`);
+  console.log(`  エディター:   ${host}/editor/?project=default`);
+  console.log(`  分岐マップ:   ${host}/map/?project=default`);
+  console.log(`  埋め込み:     ${host}/embed/?project=default\n`);
 });

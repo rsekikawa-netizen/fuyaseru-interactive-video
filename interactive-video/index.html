@@ -3,194 +3,146 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>インタラクティブ動画</title>
+<title>プロジェクト一覧 — インタラクティブ動画</title>
 <style>
-  :root { color-scheme: dark; }
+  :root { color-scheme: dark; --bg:#0d0f14; --panel:#141820; --line:#252a36; --accent:#2b6cff; --text:#e8eaed; --muted:#9aa0aa; }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; background: #0d0f14; color: #e8eaed;
-    font-family: system-ui, "Segoe UI", "Yu Gothic UI", sans-serif;
-    min-height: 100vh; display: grid; place-items: center; gap: 14px; padding: 20px;
-  }
-  #stage {
-    position: relative; width: min(96vw, 1100px); aspect-ratio: 16 / 9;
-    background: #000; border-radius: 14px; overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0,0,0,.5);
-  }
-  video { width: 100%; height: 100%; object-fit: contain; background:#000; display:block; }
-
-  /* 選択肢オーバーレイ */
-  #overlay {
-    position: absolute; inset: 0; display: none;
-    flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-    background: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.65));
-    padding: 24px; text-align: center;
-  }
-  #overlay.show { display: flex; animation: fade .4s ease; }
-  @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
-  #prompt { font-size: clamp(18px, 3vw, 28px); font-weight: 700; text-shadow: 0 2px 8px #000; }
-  .choices { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
-  .choice {
-    appearance: none; border: 1px solid rgba(255,255,255,.35);
-    background: rgba(20,22,30,.72); color: #fff; backdrop-filter: blur(6px);
-    font-size: clamp(15px, 2.2vw, 20px); font-weight: 600;
-    padding: 14px 26px; border-radius: 999px; cursor: pointer;
-    transition: transform .12s ease, background .2s ease, border-color .2s ease;
-  }
-  .choice:hover { transform: translateY(-2px); background: #2b6cff; border-color: #2b6cff; }
-
-  /* エンディング画面 */
-  #ending {
-    position: absolute; inset: 0; display: none;
-    flex-direction: column; align-items: center; justify-content: center; gap: 14px;
-    padding: 24px; text-align: center; background: rgba(8,10,16,.86); backdrop-filter: blur(4px);
-  }
-  #ending.show { display: flex; animation: fade .5s ease; }
-  #ending .kicker { letter-spacing: .3em; font-size: 12px; color: #9aa0aa; }
-  #ending h2 { margin: 0; font-size: clamp(22px, 4vw, 40px); }
-  #ending .badge { padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 700; }
-  .b-good { background:#1f6f43; } .b-bad { background:#8a2b2b; } .b-true { background:#7a5cff; } .b-normal{ background:#334; }
-  #ending .path { color:#c7cbd2; font-size: 14px; max-width: 80%; line-height: 1.7; }
-  #ending .actions { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
-  .btn { border:1px solid rgba(255,255,255,.3); background:#2b6cff; color:#fff; border-radius:10px; padding:12px 22px; font-size:15px; font-weight:600; cursor:pointer; }
-  .btn.ghost { background:transparent; }
-
-  #bar { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(255,255,255,.15); }
-  #fill { height: 100%; width: 0; background: #2b6cff; }
-  #replay { position: absolute; top: 12px; right: 12px; z-index: 3; border: none; background: rgba(0,0,0,.5); color:#fff; border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; }
-  #hint { position:absolute; inset:0; display:grid; place-items:center; text-align:center; padding:20px; color:#9aa0aa; }
-
-  /* 選択履歴パンくず */
-  #history { width: min(96vw, 1100px); display:flex; flex-wrap:wrap; gap:6px; align-items:center; min-height:26px; font-size:13px; color:#aab0bb; }
-  #history .crumb { background:#1a1d26; border:1px solid #262a36; padding:4px 10px; border-radius:999px; }
-  #history .sep { color:#4a4f5c; }
-  #history a { color:#7ea2ff; text-decoration:none; margin-left:auto; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, "Segoe UI", "Yu Gothic UI", sans-serif; min-height:100vh; }
+  header { padding:20px 24px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  header h1 { margin:0; font-size:20px; }
+  main { max-width:880px; margin:0 auto; padding:24px; display:grid; gap:20px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px; }
+  .card h2 { margin:0 0 12px; font-size:15px; color:var(--muted); letter-spacing:.05em; }
+  .list { display:flex; flex-direction:column; gap:10px; }
+  .item { display:flex; align-items:center; gap:12px; padding:14px 16px; background:#1a1d26; border:1px solid var(--line); border-radius:10px; flex-wrap:wrap; }
+  .item .info { flex:1; min-width:180px; }
+  .item .id { font-weight:700; font-size:15px; }
+  .item .title { font-size:13px; color:var(--muted); margin-top:2px; }
+  .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  a.btn, button.btn { display:inline-block; border:1px solid rgba(255,255,255,.25); background:var(--accent); color:#fff; border-radius:8px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer; text-decoration:none; }
+  a.btn.ghost, button.btn.ghost { background:transparent; }
+  button.btn.danger { background:#8a2b2b; border-color:#8a2b2b; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; }
+  input { flex:1; min-width:160px; border:1px solid var(--line); background:#0f1218; color:var(--text); border-radius:8px; padding:10px 12px; font:inherit; }
+  .hint { font-size:12px; color:var(--muted); line-height:1.6; margin-top:8px; }
+  #toast { position:fixed; bottom:18px; right:18px; background:#1f6f43; color:#fff; padding:10px 16px; border-radius:8px; opacity:0; transition:.25s; }
+  #toast.show { opacity:1; }
+  .empty { color:var(--muted); font-size:14px; padding:12px 0; }
+  .hub-note { display:none; font-size:13px; color:#b8c4dc; margin:0; padding:10px 14px; background:#1a2438; border:1px solid #2a3a5c; border-radius:10px; }
+  .hub-note.show { display:block; }
 </style>
 </head>
 <body>
-  <div id="stage">
-    <video id="player" playsinline preload="auto"></video>
-    <button id="replay" title="最初から">↻ 最初から</button>
-
-    <div id="overlay">
-      <div id="prompt"></div>
-      <div class="choices" id="choices"></div>
+<header>
+  <h1>🎬 インタラクティブ動画 — プロジェクト</h1>
+  <p class="hub-note show" style="margin:0">共有URL: <strong>https://fuyaseru-interactive-video.netlify.app/</strong></p>
+</header>
+<main>
+  <div class="card">
+    <h2>新規プロジェクト</h2>
+    <div class="row">
+      <input id="newId" placeholder="ID（例: lp-campaign-01）" />
+      <input id="newTitle" placeholder="タイトル（例: 春キャンペーンLP）" />
+      <button class="btn" id="btnCreate">＋ 作成</button>
     </div>
-
-    <div id="ending">
-      <div class="kicker">ENDING</div>
-      <span class="badge" id="endBadge"></span>
-      <h2 id="endTitle"></h2>
-      <div class="path" id="endPath"></div>
-      <div class="actions">
-        <button class="btn" id="endRestart">最初からやり直す</button>
-        <button class="btn ghost" id="endBack">ひとつ前の選択に戻る</button>
-      </div>
-    </div>
-
-    <div id="hint">読み込み中… <br><small>videos/ フォルダに mp4 を入れて、ローカルサーバーで開いてください</small></div>
-    <div id="bar"><div id="fill"></div></div>
+    <p class="hint">ID は英数字・ハイフン・アンダースコアのみ。作成後、エディターで分岐と動画を設定します。</p>
   </div>
-
-  <div id="history"></div>
-  <p style="margin:0;font-size:13px;color:#7ea2ff;display:flex;gap:14px;flex-wrap:wrap;justify-content:center;width:min(96vw,1100px)">
-    <a href="editor/" style="color:inherit">📝 エディター</a>
-    <a href="map/" style="color:inherit" target="_blank">🗺 分岐マップ</a>
-    <a href="embed/" style="color:inherit">📋 埋め込みコード</a>
-  </p>
-
+  <div class="card">
+    <h2>プロジェクト一覧</h2>
+    <div class="list" id="list"><div class="empty">読み込み中…</div></div>
+  </div>
+</main>
+<div id="toast"></div>
+<script src="project.js?v=4"></script>
 <script>
 const $ = (s) => document.querySelector(s);
-const player = $("#player"), overlay = $("#overlay"), choicesEl = $("#choices"),
-      promptEl = $("#prompt"), fill = $("#fill"), hint = $("#hint"),
-      ending = $("#ending"), historyEl = $("#history");
+const toast = (m) => { const t=$("#toast"); t.textContent=m; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2200); };
+function link(path, id) { return `${path}?project=${encodeURIComponent(id)}`; }
+function esc(s) { return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;"); }
 
-let scenario = null, current = null;
-// 履歴: {node, label} … labelはそのノードに来る時に押した選択肢名（startはnull）
-let history = [];
+async function initHub() {
+  if (window.self !== window.top) {
+    const q = new URLSearchParams(location.search);
+    if (!q.has("project")) q.set("project", "default");
+    location.replace("play.html?" + q.toString());
+    return;
+  }
+  const api = await hasProjectApi();
+  if (!api) {
+    location.replace("play.html?project=default");
+    return;
+  }
+  document.getElementById("hubNote")?.classList.add("show");
+  loadList();
+  bindCreate();
+}
 
-async function boot() {
+async function loadList() {
+  let data;
   try {
-    const res = await fetch("scenario.json?_=" + Date.now(), { cache: "no-store" });
-    scenario = await res.json();
-    document.title = scenario.title || "インタラクティブ動画";
-    restart();
-  } catch (e) {
-    hint.innerHTML = "scenario.json を読み込めませんでした。<br><small>file:// で直接開かず、ローカルサーバー経由で開いてください（README参照）。</small>";
+    data = await (await fetch("/api/projects?_=" + Date.now(), { cache: "no-store" })).json();
+  } catch {
+    data = await (await fetch("projects/index.json?_=" + Date.now(), { cache: "no-store" })).json();
   }
-}
-
-function restart() { history = []; go(scenario.start, null); }
-
-function go(nodeId, choiceLabel) {
-  const node = scenario.nodes[nodeId];
-  if (!node) { hint.style.display = "grid"; hint.textContent = "ノードが見つかりません: " + nodeId; return; }
-  current = nodeId;
-  history.push({ node: nodeId, label: choiceLabel });
-  overlay.classList.remove("show");
-  ending.classList.remove("show");
-  hint.style.display = "none";
-  renderHistory();
-  player.src = node.video;
-  if (node.poster) player.poster = node.poster;
-  player.play().catch(() => { hint.style.display="grid"; hint.textContent="▶ クリックで再生"; });
-}
-
-function renderHistory() {
-  historyEl.innerHTML = "";
-  history.forEach((h, i) => {
-    if (i > 0) { const s = document.createElement("span"); s.className="sep"; s.textContent="→"; historyEl.appendChild(s); }
-    const c = document.createElement("span"); c.className = "crumb";
-    c.textContent = h.label ? h.label : (scenario.nodes[h.node].endingTitle || h.node);
-    historyEl.appendChild(c);
+  const list = $("#list");
+  list.innerHTML = "";
+  if (!data.projects?.length) {
+    list.innerHTML = '<div class="empty">プロジェクトがありません</div>';
+    return;
+  }
+  for (const p of data.projects) {
+    const el = document.createElement("div");
+    el.className = "item";
+    el.innerHTML = `
+      <div class="info"><div class="id">${esc(p.id)}</div><div class="title">${esc(p.title || p.id)}</div></div>
+      <div class="actions">
+        <a class="btn" href="${link("play.html", p.id)}">▶ 再生</a>
+        <a class="btn ghost" href="${link("editor/", p.id)}">📝 編集</a>
+        <a class="btn ghost" href="${link("map/", p.id)}" target="_blank">🗺 マップ</a>
+        <a class="btn ghost" href="${link("embed/", p.id)}">📋 埋込</a>
+        ${p.id !== "default" ? `<button class="btn danger ghost" data-del="${esc(p.id)}">削除</button>` : ""}
+      </div>`;
+    list.appendChild(el);
+  }
+  list.querySelectorAll("[data-del]").forEach((b) => {
+    b.onclick = async () => {
+      if (!confirm(`プロジェクト "${b.dataset.del}" を削除しますか？`)) return;
+      try {
+        const res = await fetch("/api/projects?id=" + encodeURIComponent(b.dataset.del), { method: "DELETE" });
+        const j = await res.json();
+        if (!res.ok) return alert(j.error || "削除失敗");
+        toast("削除しました");
+        loadList();
+      } catch {
+        alert("サーバーに接続できません。Node サーバー（npm start / クラウド本番）で開いてください");
+      }
+    };
   });
-  const link = document.createElement("a");
-  link.href = "map/"; link.target = "_blank"; link.textContent = "🗺 分岐マップを見る";
-  historyEl.appendChild(link);
 }
 
-player.addEventListener("timeupdate", () => {
-  if (player.duration) fill.style.width = (player.currentTime / player.duration * 100) + "%";
-});
-
-player.addEventListener("ended", () => {
-  const node = scenario.nodes[current];
-  if (node.ending) { showEnding(node); return; }
-  const choices = node.choices || [];
-  if (!choices.length) { showEnding(node); return; }
-  promptEl.textContent = node.prompt || "次はどうする?";
-  choicesEl.innerHTML = "";
-  for (const c of choices) {
-    const b = document.createElement("button");
-    b.className = "choice"; b.textContent = c.label;
-    b.onclick = () => go(c.next, c.label);
-    choicesEl.appendChild(b);
+function bindCreate() {
+  $("#btnCreate").onclick = async () => {
+  const id = $("#newId").value.trim();
+  const title = $("#newTitle").value.trim() || id;
+  if (!id) return alert("ID を入力してください");
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return alert("ID は英数字・ハイフン・アンダースコアのみ");
+  try {
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, title }),
+    });
+    const j = await res.json();
+    if (!res.ok) return alert(j.error || "作成失敗");
+    toast("作成しました");
+    location.href = link("editor/", id);
+  } catch {
+    alert("サーバーに接続できません。Node サーバー（npm start / クラウド本番）で開いてください");
   }
-  overlay.classList.add("show");
-});
-
-function showEnding(node) {
-  const type = node.endingType || "normal";
-  const badge = $("#endBadge");
-  badge.className = "badge b-" + type;
-  badge.textContent = ({good:"GOOD END", bad:"BAD END", true:"TRUE END", normal:"END"})[type] || "END";
-  $("#endTitle").textContent = node.endingTitle || "おわり";
-  const labels = history.filter(h => h.label).map(h => h.label);
-  $("#endPath").textContent = labels.length ? "あなたの選択: " + labels.join(" → ") : "";
-  ending.classList.add("show");
+  };
 }
 
-$("#replay").onclick = restart;
-$("#endRestart").onclick = restart;
-$("#endBack").onclick = () => {
-  if (history.length < 2) { restart(); return; }
-  history.pop();                 // 今のエンディングを外す
-  const prev = history.pop();    // ひとつ前へ
-  go(prev.node, prev.label);
-};
-hint.onclick = () => player.play();
-
-boot();
+initHub();
 </script>
 </body>
 </html>

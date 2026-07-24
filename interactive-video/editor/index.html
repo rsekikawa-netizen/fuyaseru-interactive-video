@@ -5,105 +5,281 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>シナリオエディター</title>
 <style>
-  :root { color-scheme: dark; --bg:#0d0f14; --panel:#141820; --line:#252a36; --accent:#2b6cff; --text:#e8eaed; --muted:#9aa0aa; }
+  :root {
+    color-scheme: dark;
+    --bg:#0a0c10; --panel:#131820; --panel2:#1a2030; --line:#2d3548;
+    --accent:#3d7cff; --accent-dim:rgba(61,124,255,.15);
+    --warn:#f5a524; --text:#eef1f6; --muted:#9aa3b2;
+  }
   * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--text); font-family: system-ui, "Segoe UI", "Yu Gothic UI", sans-serif; min-height:100vh; display:grid; grid-template-rows:auto 1fr; }
-  header { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--line); background:#10141c; flex-wrap:wrap; }
-  header h1 { font-size:16px; margin:0; }
-  header nav { display:flex; gap:10px; margin-left:auto; flex-wrap:wrap; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:"Segoe UI","Yu Gothic UI","Hiragino Sans",sans-serif; min-height:100vh; display:grid; grid-template-rows:auto 1fr; }
+  header { display:flex; align-items:center; gap:12px; padding:14px 20px; border-bottom:1px solid var(--line); background:#0e121a; flex-wrap:wrap; position:sticky; top:0; z-index:20; }
+  header h1 { font-size:17px; margin:0; font-weight:700; }
+  header nav { display:flex; gap:8px; margin-left:auto; flex-wrap:wrap; align-items:center; }
   header a, header button { font-size:13px; }
-  a { color:#7ea2ff; text-decoration:none; }
-  .btn { border:1px solid rgba(255,255,255,.25); background:var(--accent); color:#fff; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; }
-  .btn.ghost { background:transparent; }
-  .btn.danger { background:#8a2b2b; border-color:#8a2b2b; }
-  main { display:grid; grid-template-columns:280px 1fr; min-height:0; }
-  aside { border-right:1px solid var(--line); background:var(--panel); overflow:auto; padding:12px; }
-  aside h2 { font-size:12px; color:var(--muted); margin:0 0 8px; letter-spacing:.08em; }
-  .node-list { display:flex; flex-direction:column; gap:6px; margin-bottom:16px; }
-  .node-item { text-align:left; border:1px solid var(--line); background:#1a1d26; color:var(--text); border-radius:8px; padding:10px 12px; cursor:pointer; }
-  .node-item.active { border-color:var(--accent); background:#172038; }
-  .node-item .id { font-weight:700; font-size:14px; }
-  .node-item .sub { font-size:11px; color:var(--muted); margin-top:2px; }
-  .field { margin-bottom:12px; }
-  label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  a { color:#8eb4ff; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  .btn { border:1px solid rgba(255,255,255,.2); background:var(--accent); color:#fff; border-radius:10px; padding:9px 16px; font-weight:700; cursor:pointer; font-size:13px; }
+  .btn.ghost { background:var(--panel2); color:var(--text); }
+  .btn.danger { background:#a83232; border-color:#a83232; }
+  .btn-lg { padding:12px 22px; font-size:14px; }
+  main { display:grid; grid-template-columns:300px 1fr; min-height:0; }
+  aside { border-right:1px solid var(--line); background:var(--panel); overflow:auto; padding:16px; }
+  aside .aside-block { margin-bottom:20px; padding-bottom:16px; border-bottom:1px solid var(--line); }
+  aside .aside-block:last-child { border-bottom:none; }
+  aside h2 { font-size:11px; color:var(--muted); margin:0 0 10px; letter-spacing:.12em; text-transform:uppercase; }
+  .node-list { display:flex; flex-direction:column; gap:8px; }
+  .node-item { text-align:left; border:1px solid var(--line); background:var(--panel2); color:var(--text); border-radius:10px; padding:12px 14px; cursor:pointer; transition:border-color .15s, background .15s; width:100%; }
+  .node-item:hover { border-color:#4a5568; }
+  .node-item.active { border-color:var(--accent); background:var(--accent-dim); box-shadow:0 0 0 1px rgba(61,124,255,.25); }
+  .node-item .id { font-weight:800; font-size:14px; }
+  .node-item .sub { font-size:12px; color:var(--muted); margin-top:4px; line-height:1.4; }
+  .field { margin-bottom:14px; }
+  label, .lbl { display:block; font-size:13px; font-weight:600; color:#c5cad4; margin-bottom:6px; }
+  .lbl-sub { font-size:11px; font-weight:500; color:var(--muted); margin:-2px 0 8px; line-height:1.5; }
   input, textarea, select {
-    width:100%; border:1px solid var(--line); background:#0f1218; color:var(--text);
-    border-radius:8px; padding:8px 10px; font:inherit;
+    width:100%; border:1px solid var(--line); background:#0c1018; color:var(--text);
+    border-radius:10px; padding:10px 12px; font:inherit; font-size:14px;
   }
-  textarea { min-height:72px; resize:vertical; }
-  section { overflow:auto; padding:18px; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; }
-  .card h3 { margin:0 0 12px; font-size:15px; }
-  .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-  .choices { display:flex; flex-direction:column; gap:8px; }
-  .choice-row { display:grid; grid-template-columns:1fr 140px auto; gap:8px; align-items:center; }
-  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
-  #toast { position:fixed; bottom:18px; right:18px; background:#1f6f43; color:#fff; padding:10px 16px; border-radius:8px; opacity:0; transition:.25s; pointer-events:none; }
+  input:focus, select:focus, textarea:focus { outline:2px solid rgba(61,124,255,.45); border-color:var(--accent); }
+  section { overflow:auto; padding:20px 24px 100px; background:linear-gradient(180deg,#0a0c10 0%,#0d1018 100%); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:0; margin-bottom:16px; overflow:hidden; }
+  .card-head { padding:14px 18px; border-bottom:1px solid var(--line); background:#101622; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .card-head h3 { margin:0; font-size:16px; font-weight:800; flex:1; }
+  .card-body { padding:18px; }
+  .step-badge { display:inline-flex; align-items:center; justify-content:center; min-width:26px; height:26px; border-radius:8px; background:var(--accent); color:#fff; font-size:12px; font-weight:800; }
+  .step-badge.gray { background:#3a4254; }
+  .step-badge.warn { background:#c4841a; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .row-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+  .choices { display:flex; flex-direction:column; gap:12px; }
+  .choice-block { border:1px solid var(--line); border-radius:12px; padding:14px; background:var(--panel2); }
+  .choice-block-title { font-size:12px; font-weight:800; color:var(--muted); margin-bottom:10px; }
+  .choice-row { display:grid; grid-template-columns:1fr 100px 1fr auto; gap:10px; align-items:end; }
+  .choice-row .field { margin:0; }
+  .hotspot-card { border:1px solid var(--line); background:var(--panel2); border-radius:14px; padding:16px; margin-bottom:12px; display:grid; gap:14px; }
+  .hotspot-card.active-card { border-color:var(--warn); box-shadow:0 0 0 2px rgba(245,165,36,.25); }
+  .hotspot-card-head { display:flex; justify-content:space-between; align-items:center; gap:8px; padding-bottom:10px; border-bottom:1px dashed var(--line); }
+  .hotspot-card-head strong { font-size:15px; }
+  .hotspot-section-title { font-size:12px; font-weight:800; color:#8eb4ff; margin:0 0 8px; letter-spacing:.04em; }
+  .hotspot-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; }
+  .hotspot-image-preview { width:100%; max-width:200px; max-height:100px; object-fit:contain; background:#0c1018; border:1px solid var(--line); border-radius:10px; padding:8px; margin-top:8px; }
+  .video-stage { position:relative; width:100%; margin-top:12px; border-radius:12px; overflow:hidden; border:2px solid var(--accent); background:#000; box-shadow:0 8px 32px rgba(0,0,0,.4); }
+  .video-stage-label { position:absolute; top:8px; left:8px; z-index:2; background:rgba(0,0,0,.65); color:#fff; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; pointer-events:none; }
+  .video-stage video { width:100%; max-height:360px; display:block; }
+  .placement-layer { position:absolute; inset:0; cursor:crosshair; z-index:1; }
+  .placement-marker { position:absolute; transform:translate(-50%,-50%); border:none; background:transparent; min-width:0; min-height:0; padding:0; cursor:grab; display:block; font-size:11px; font-weight:800; color:#fff; user-select:none; z-index:2; }
+  .placement-marker:not(:has(.resize-frame)) { border:2px solid #3d7cff; background:rgba(61,124,255,.3); border-radius:8px; min-width:32px; min-height:32px; display:grid; place-items:center; padding:4px; }
+  .placement-marker.active:not(:has(.resize-frame)) { border-color:var(--warn); background:rgba(245,165,36,.35); }
+  .resize-frame { position:relative; border:2px dashed rgba(245,165,36,.95); box-shadow:0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 1px rgba(255,255,255,.15); border-radius:4px; line-height:0; }
+  .placement-marker.active .resize-frame { border-color:#ffcc66; }
+  .resize-frame img { display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; max-width:none; max-height:none; }
+  .resize-handle { position:absolute; width:11px; height:11px; background:var(--warn); border:2px solid #fff; border-radius:2px; z-index:3; box-shadow:0 1px 4px rgba(0,0,0,.45); }
+  .handle-se { right:-7px; bottom:-7px; cursor:nwse-resize; }
+  .handle-e { right:-7px; top:50%; transform:translateY(-50%); cursor:ew-resize; }
+  .handle-s { bottom:-7px; left:50%; transform:translateX(-50%); cursor:ns-resize; }
+  .action-panel { display:none; }
+  .action-panel.show { display:block; }
+  .callout { background:var(--accent-dim); border:1px solid rgba(61,124,255,.35); border-radius:10px; padding:12px 14px; font-size:13px; line-height:1.65; color:#d0d8e8; margin-bottom:14px; }
+  .callout strong { color:#fff; }
+  .callout-warn { background:rgba(245,165,36,.1); border-color:rgba(245,165,36,.35); }
+  .sticky-actions { position:sticky; bottom:0; margin:0 -24px -100px; padding:16px 24px; background:rgba(10,12,16,.92); border-top:1px solid var(--line); backdrop-filter:blur(8px); display:flex; gap:10px; flex-wrap:wrap; z-index:10; }
+  .toolbar { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  #toast { position:fixed; bottom:22px; right:22px; background:#1f6f43; color:#fff; padding:12px 18px; border-radius:10px; opacity:0; transition:.25s; pointer-events:none; font-weight:600; z-index:100; }
   #toast.show { opacity:1; }
-  .hint { font-size:12px; color:var(--muted); line-height:1.6; }
+  .hint { font-size:12px; color:var(--muted); line-height:1.65; }
   .upload-box {
-    border: 2px dashed var(--line); border-radius: 12px; padding: 20px; text-align: center;
-    background: #0f1218; cursor: pointer; transition: border-color .2s, background .2s;
+    border: 2px dashed #3d4a60; border-radius: 14px; padding: 24px; text-align: center;
+    background: #0c1018; cursor: pointer; transition: border-color .2s, background .2s;
   }
-  .upload-box:hover, .upload-box.dragover { border-color: var(--accent); background: #121828; }
+  .upload-box:hover, .upload-box.dragover { border-color: var(--accent); background: var(--accent-dim); }
   .upload-box input { display: none; }
-  .upload-box .icon { font-size: 28px; margin-bottom: 6px; }
-  .upload-box .title { font-weight: 600; margin-bottom: 4px; }
-  .video-current { margin-top: 10px; padding: 10px 12px; background: #0f1218; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; word-break: break-all; }
-  .video-preview { margin-top: 10px; width: 100%; max-height: 200px; border-radius: 8px; background: #000; }
-  .upload-progress { margin-top: 8px; font-size: 12px; color: var(--accent); min-height: 18px; }
-  @media (max-width:900px) { main { grid-template-columns:1fr; } aside { border-right:none; border-bottom:1px solid var(--line); max-height:240px; } }
+  .upload-box .icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-box .title { font-weight: 700; margin-bottom: 6px; font-size:15px; }
+  .video-current { margin-top: 10px; padding: 10px 12px; background: #0c1018; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; word-break: break-all; color:var(--muted); }
+  .video-preview { margin-top: 0; width: 100%; max-height: none; border-radius: 0; background: #000; border: none; display: block; }
+  .editor-video-wrap { margin-top: 10px; }
+  .editor-video-wrap .video-stage { margin-top: 0; }
+  #liveHotspotLayer {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .editor-live-hotspot:not(.hotspot-img-btn) {
+    font-size: 11px;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 3px #000;
+    padding: 4px 8px;
+    border-radius: 8px;
+    border: 2px solid rgba(61, 124, 255, 0.85);
+    background: rgba(61, 124, 255, 0.35);
+  }
+  .editor-live-hotspot img {
+    display: block;
+    max-width: none;
+    height: auto;
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
+  }
+  .placement-layer { z-index: 4; }
+  .placement-layer.hidden-while-playing { opacity: 0; pointer-events: none; }
+  .editor-preview-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .editor-preview-hint { font-size: 12px; color: var(--muted); flex: 1; min-width: 200px; line-height: 1.5; }
+  #actionTestHotspotLayer {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+  }
+  .action-test-hotspot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    pointer-events: auto;
+    cursor: pointer;
+    border: none;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 10px 16px;
+    border-radius: 12px;
+    color: #fff;
+    background: rgba(61, 124, 255, 0.92);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  }
+  .action-test-hotspot.has-img {
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.45));
+  }
+  .action-test-hotspot.has-img img {
+    display: block;
+    max-width: none;
+    height: auto;
+    pointer-events: none;
+  }
+  .action-test-hotspot:hover { filter: brightness(1.08); }
+  .video-stage.action-test-stage { border-color: var(--warn); }
+  /* ホットスポット表示エフェクト（player.css と同期） */
+  .video-stage .hotspot {
+    position: absolute;
+    transform: translate(-50%, -50%);
+  }
+  .video-stage .hotspot.fx-in-pop { animation: ed-pop 0.35s ease backwards; }
+  .video-stage .hotspot.fx-in-fade-in { animation: ed-hs-fade-in 0.45s ease backwards; }
+  .video-stage .hotspot.fx-in-fade-in-slow { animation: ed-hs-fade-in 0.95s ease backwards; }
+  .video-stage .hotspot.fx-in-rise { animation: ed-hs-rise 0.5s ease backwards; }
+  .video-stage .hotspot.fx-in-none { animation: none; }
+  .video-stage .hotspot.is-leaving { pointer-events: none !important; }
+  .video-stage .hotspot.is-leaving.fx-out-fade-out { animation: ed-hs-fade-out 0.4s ease forwards; }
+  .video-stage .hotspot.is-leaving.fx-out-fade-out-shrink { animation: ed-hs-fade-out-shrink 0.42s ease forwards; }
+  .video-stage .hotspot.is-leaving.fx-out-fade-out-slow { animation: ed-hs-fade-out 0.85s ease forwards; }
+  .video-stage .hotspot-img-btn {
+    border: none;
+    padding: 0;
+    background: transparent;
+    line-height: 0;
+    filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
+  }
+  @keyframes ed-pop {
+    from { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  }
+  @keyframes ed-hs-fade-in {
+    from { opacity: 0; transform: translate(-50%, -50%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+  @keyframes ed-hs-rise {
+    from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+  }
+  @keyframes ed-hs-fade-out {
+    from { opacity: 1; transform: translate(-50%, -50%); }
+    to { opacity: 0; transform: translate(-50%, -50%); }
+  }
+  @keyframes ed-hs-fade-out-shrink {
+    from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    to { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
+  }
+  .upload-progress { margin-top: 8px; font-size: 13px; color: var(--accent); min-height: 20px; font-weight:600; }
+  .check-row { display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--panel2); border-radius:10px; border:1px solid var(--line); }
+  .check-row input { width:auto; transform:scale(1.15); }
+  .check-row label { margin:0; font-size:14px; cursor:pointer; }
+  @media (max-width:960px) {
+    main { grid-template-columns:1fr; }
+    aside { border-right:none; border-bottom:1px solid var(--line); max-height:280px; }
+    .choice-row { grid-template-columns:1fr; }
+    .row, .row-3 { grid-template-columns:1fr; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>📝 シナリオエディター</h1>
+  <h1>シナリオエディター <span id="projectLabel" style="font-size:12px;color:var(--muted);font-weight:500"></span></h1>
   <nav>
-    <a href="../">▶ プレイヤー</a>
-    <a href="../map/">🗺 分岐マップ</a>
-    <button class="btn ghost" id="btnLoad">再読込</button>
-    <button class="btn" id="btnSave">JSONを保存</button>
-    <button class="btn ghost" id="btnDownload">ダウンロード</button>
+    <a id="linkHome" href="../">プロジェクト</a>
+    <a id="linkPlay" href="../play.html">▶ 全体プレビュー</a>
+    <a id="linkPlayScene" href="../play.html" style="display:none">▶ このシーンを再生</a>
+    <a id="linkMap" href="../map/">分岐マップ</a>
+    <button class="btn ghost" id="btnLoad" type="button">再読込</button>
+    <button class="btn btn-lg" id="btnSave" type="button">💾 保存</button>
   </nav>
 </header>
 
 <main>
   <aside>
-    <h2>プロジェクト</h2>
-    <div class="field">
-      <label>タイトル</label>
-      <input id="metaTitle" />
+    <div class="aside-block">
+      <h2>プロジェクト設定</h2>
+      <div class="field">
+        <label for="metaTitle">作品タイトル</label>
+        <input id="metaTitle" />
+      </div>
+      <div class="field">
+        <label for="metaStart">最初のシーン ID</label>
+        <input id="metaStart" placeholder="intro" />
+      </div>
+      <div class="field">
+        <label for="metaPublicUrl">公開 URL（任意）</label>
+        <input id="metaPublicUrl" placeholder="https://xxxx.netlify.app" />
+        <p class="hint" style="margin-top:6px">LP 埋め込み用。ローカルでは空で OK。</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn" id="btnAddNode" type="button">＋ シーン追加</button>
+        <a class="btn ghost" id="linkEmbed" href="../embed/">埋め込み</a>
+      </div>
     </div>
-    <div class="field">
-      <label>開始ノード ID</label>
-      <input id="metaStart" />
+    <div class="aside-block">
+      <h2>シーン一覧</h2>
+      <div class="node-list" id="nodeList"></div>
+      <p class="hint"><strong>★</strong> が最初に再生されるシーンです。分岐シーンでは「エンディング」のチェックを外してください。</p>
     </div>
-    <div class="field">
-      <label>公開URL（LP埋め込み用）</label>
-      <input id="metaPublicUrl" placeholder="https://your-project.netlify.app" />
-    </div>
-    <div class="toolbar">
-      <button class="btn" id="btnAddNode">＋ ノード追加</button>
-      <a class="btn ghost" href="../embed/" style="display:inline-block;text-align:center;line-height:1.4">📋 埋め込みコード</a>
-    </div>
-
-    <h2 style="margin-top:18px">ノード一覧</h2>
-    <div class="node-list" id="nodeList"></div>
-    <p class="hint">左のノードを選んで右側で編集します。動画はファイルをアップロードしてください。</p>
   </aside>
 
   <section id="editor">
     <div class="card">
-      <h3 id="editTitle">ノードを選択してください</h3>
-      <div id="editBody" class="hint">左の一覧からノードを選ぶか、「＋ ノード追加」で新規作成します。</div>
+      <div class="card-head">
+        <span class="step-badge gray">—</span>
+        <h3 id="editTitle">シーンを選んでください</h3>
+      </div>
+      <div class="card-body">
+        <div id="editBody" class="hint">左の「シーン一覧」から編集するシーンを選ぶか、「＋ シーン追加」で新規作成します。</div>
+      </div>
     </div>
   </section>
 </main>
 
 <div id="toast"></div>
 
+<script src="../project.js?v=2"></script>
 <script>
-let scenario = null;
+const projectId = getProjectId();
+let scenario = { title: "", start: "", publicUrl: "", nodes: {} };
 let selectedId = null;
 
 const $ = (s) => document.querySelector(s);
@@ -112,9 +288,41 @@ const toast = (msg) => {
   setTimeout(() => t.classList.remove("show"), 2200);
 };
 
+function playSceneUrl(nodeId) {
+  const u = new URL(withProject("../play.html", projectId), location.origin);
+  if (nodeId) u.searchParams.set("node", nodeId);
+  return u.pathname + u.search;
+}
+
+function setLinks() {
+  $("#projectLabel").textContent = `[${projectId}]`;
+  $("#linkPlay").href = withProject("../play.html", projectId);
+  const sceneLink = $("#linkPlayScene");
+  if (sceneLink) {
+    if (selectedId) {
+      sceneLink.href = playSceneUrl(selectedId);
+      sceneLink.style.display = "";
+    } else {
+      sceneLink.style.display = "none";
+    }
+  }
+  $("#linkMap").href = withProject("../map/", projectId);
+  $("#linkEmbed").href = withProject("../embed/", projectId);
+}
+
 async function load() {
-  scenario = await (await fetch("../scenario.json?_=" + Date.now(), { cache: "no-store" })).json();
-  selectedId = scenario.start;
+  setLinks();
+  try {
+    const res = await fetch(scenarioUrl(projectId), { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    scenario = await res.json();
+    if (!scenario.nodes || typeof scenario.nodes !== "object") scenario.nodes = {};
+  } catch (e) {
+    console.error(e);
+    toast("scenario.json の読み込みに失敗しました。再読込してください");
+    scenario = { title: "", start: "", publicUrl: "", nodes: {} };
+  }
+  selectedId = scenario.start || Object.keys(scenario.nodes)[0] || null;
   renderSidebar();
   renderEditor();
 }
@@ -122,7 +330,10 @@ async function load() {
 function renderSidebar() {
   $("#metaTitle").value = scenario.title || "";
   $("#metaStart").value = scenario.start || "";
-  $("#metaPublicUrl").value = scenario.publicUrl || "";
+  const fallbackUrl = /^localhost$|^127\.0\.0\.1$/i.test(location.hostname)
+    ? ""
+    : location.origin;
+  $("#metaPublicUrl").value = scenario.publicUrl || fallbackUrl;
   const list = $("#nodeList");
   list.innerHTML = "";
   for (const id of Object.keys(scenario.nodes)) {
@@ -139,51 +350,119 @@ function renderSidebar() {
 
 function renderEditor() {
   if (!selectedId || !scenario.nodes[selectedId]) {
-    $("#editTitle").textContent = "ノードを選択してください";
-    $("#editBody").innerHTML = '<p class="hint">左の一覧からノードを選ぶか、「＋ ノード追加」で新規作成します。</p>';
+    $("#editTitle").textContent = "シーンを選んでください";
+    $("#editBody").innerHTML = '<p class="hint">左の「シーン一覧」から選ぶか、「＋ シーン追加」で作成します。</p>';
     return;
   }
   const id = selectedId;
   const n = scenario.nodes[id];
-  $("#editTitle").textContent = "ノード: " + id;
+  $("#editTitle").textContent = `シーン: ${id}`;
 
   const isEnding = !!n.ending;
   $("#editBody").innerHTML = `
-    <div class="field"><label>ノード ID</label><input id="fId" value="${esc(id)}" /></div>
-    <div class="field">
-      <label>動画</label>
-      <div class="upload-box" id="uploadBox">
-        <input type="file" id="fUpload" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
-        <div class="icon">🎬</div>
-        <div class="title">クリックまたはドラッグ＆ドロップ</div>
-        <div class="hint">mp4 / webm / mov（最大 500MB）</div>
-      </div>
-      <div class="upload-progress" id="uploadProgress"></div>
-      <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
-      <video class="video-preview" id="videoPreview" controls muted playsinline ${n.video ? `src="../${esc(n.video)}"` : ""}></video>
-      <input type="hidden" id="fVideo" value="${esc(n.video||"")}" />
-    </div>
-    <div class="field"><label><input type="checkbox" id="fEnding" ${isEnding?"checked":""} /> エンディングノード</label></div>
-    <div id="endingFields" style="display:${isEnding?"block":"none"}">
-      <div class="row">
-        <div class="field"><label>エンディングタイトル</label><input id="fEndTitle" value="${esc(n.endingTitle||"")}" /></div>
-        <div class="field"><label>タイプ</label>
-          <select id="fEndType">
-            ${["normal","good","bad","true"].map(t=>`<option value="${t}" ${n.endingType===t?"selected":""}>${t.toUpperCase()}</option>`).join("")}
-          </select>
+    <div class="callout"><strong>作業の流れ：</strong> ① 動画 → ② <strong>見た目プレビュー</strong>で時間・位置 → ③ ボタン設定 → ④ <strong>動作テスト</strong>でクリック確認 → ⑤「反映」で保存</div>
+
+    <div class="card">
+      <div class="card-head"><span class="step-badge">1</span><h3>基本設定</h3></div>
+      <div class="card-body">
+        <div class="field"><label for="fId">シーン ID（英数字）</label><input id="fId" value="${esc(id)}" /></div>
+        <div class="check-row">
+          <input type="checkbox" id="fEnding" ${isEnding?"checked":""} />
+          <label for="fEnding">このシーンは<strong>エンディング</strong>（選択肢なし・結末のみ）</label>
         </div>
       </div>
     </div>
-    <div id="branchFields" style="display:${isEnding?"none":"block"}">
-      <div class="field"><label>選択肢の質問文</label><input id="fPrompt" value="${esc(n.prompt||"")}" placeholder="次はどうする?" /></div>
-      <label>分岐選択肢</label>
-      <div class="choices" id="choiceRows"></div>
-      <div class="toolbar"><button type="button" class="btn ghost" id="btnAddChoice">＋ 選択肢追加</button></div>
+
+    <div class="card">
+      <div class="card-head"><span class="step-badge">2</span><h3>見た目プレビュー（時間・位置・サイズ）</h3></div>
+      <div class="card-body">
+        <div class="upload-box" id="uploadBox">
+          <input type="file" id="fUpload" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
+          <div class="icon">🎬</div>
+          <div class="title">クリックまたはドラッグ＆ドロップ</div>
+          <div class="hint">mp4 / webm / mov（最大 500MB）</div>
+        </div>
+        <div class="upload-progress" id="uploadProgress"></div>
+        <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
+        <div class="editor-video-wrap" id="editorVideoWrap" style="display:${n.video && !isEnding ? "block" : "none"}">
+          <div class="callout callout-warn" style="margin-bottom:10px"><strong>クリック不可</strong> — 表示タイミングと見た目の確認専用です。停止中は<strong>黄色ガイド</strong>で位置・サイズを編集。アクションの確認は下の「動作テスト」へ。</div>
+          <div class="video-stage" id="videoStage">
+            <span class="video-stage-label">見た目のみ</span>
+            <video class="video-preview" id="videoPreview" controls muted playsinline ${n.video ? `src="${esc(videoUrl(n.video, projectId))}"` : ""}></video>
+            <div id="liveHotspotLayer" aria-hidden="true"></div>
+            <div class="placement-layer" id="placementLayer"></div>
+          </div>
+          <div class="editor-preview-bar">
+            <button type="button" class="btn ghost" id="btnPreviewFromStart">▶ 先頭から再生</button>
+            <button type="button" class="btn ghost" id="btnPreviewAtHotspot">▶ 選択ボタンの表示秒へ</button>
+            <span class="editor-preview-hint" id="editorPreviewHint">再生／シークで、その時刻に表示されるボタンの見た目を確認できます。</span>
+          </div>
+        </div>
+        <input type="hidden" id="fVideo" value="${esc(n.video||"")}" />
+      </div>
     </div>
-    <div class="toolbar" style="margin-top:16px">
-      <button type="button" class="btn" id="btnApply">このノードを反映</button>
-      <button type="button" class="btn danger" id="btnDelete">ノード削除</button>
-      ${id !== scenario.start ? `<button type="button" class="btn ghost" id="btnSetStart">開始ノードに設定</button>` : ""}
+
+    <div id="endingFields" style="display:${isEnding?"block":"none"}">
+      <div class="card">
+        <div class="card-head"><span class="step-badge">4</span><h3>エンディング内容</h3></div>
+        <div class="card-body row">
+          <div class="field"><label>結末タイトル</label><input id="fEndTitle" value="${esc(n.endingTitle||"")}" placeholder="おしまい" /></div>
+          <div class="field"><label>結末タイプ</label>
+            <select id="fEndType">
+              ${["normal","good","bad","true"].map(t=>`<option value="${t}" ${n.endingType===t?"selected":""}>${t.toUpperCase()}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="branchFields" style="display:${isEnding?"none":"block"}">
+      <div class="card">
+        <div class="card-head"><span class="step-badge">4</span><h3>動画内ボタン（クリックで別動画へ）</h3></div>
+        <div class="card-body">
+          <p class="lbl-sub">画像をアップロードできます。「分岐先シーン」＝クリック後に再生する動画です。</p>
+          <div id="hotspotRows"></div>
+          <div class="toolbar"><button type="button" class="btn" id="btnAddHotspot">＋ 動画内ボタンを追加</button></div>
+        </div>
+      </div>
+
+      <div class="card" id="actionTestCard" style="display:${n.video && !isEnding ? "block" : "none"}">
+        <div class="card-head"><span class="step-badge warn">5</span><h3>動作テスト（クリック・アクション確認）</h3></div>
+        <div class="card-body">
+          <div class="callout">見た目プレビューとは<strong>別の動画枠</strong>です。ボタンをクリックして<strong>分岐シーン・外部リンク</strong>が意図どおりか試せます。「設定を反映」でフォームの最新内容を読み込みます（保存前でも可）。</div>
+          <div class="video-stage action-test-stage">
+            <span class="video-stage-label">動作テスト — シーン: <strong id="actionTestSceneLabel">${esc(id)}</strong></span>
+            <video id="actionTestVideo" controls playsinline muted ${n.video ? `src="${esc(videoUrl(n.video, projectId))}"` : ""}></video>
+            <div id="actionTestHotspotLayer"></div>
+          </div>
+          <div class="editor-preview-bar">
+            <button type="button" class="btn" id="btnActionTestSync">↻ いまの設定をテストに反映</button>
+            <button type="button" class="btn ghost" id="btnActionTestReset">最初から</button>
+            <a class="btn ghost" id="linkPlaySceneAction" href="${esc(playSceneUrl(id))}" target="_blank" rel="noopener">↗ 保存済みを本番プレイヤーで</a>
+            <span class="editor-preview-hint" id="actionTestHint">分岐先シーンへ進むと、そのシーンの<strong>保存済み</strong>ボタン設定でテストが続きます。</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><span class="step-badge">6</span><h3>動画終了後の選択ボタン</h3></div>
+        <div class="card-body">
+          <div class="field"><label>シーンタイトル（任意）</label><input id="fSceneTitle" value="${esc(n.sceneTitle||n.title||"")}" placeholder="再生開始時に表示" /></div>
+          <div class="field"><label>質問文</label><input id="fPrompt" value="${esc(n.prompt||"")}" placeholder="次はどうする？" /></div>
+          <div class="row">
+            <div class="field"><label>補足文</label><input id="fPromptSub" value="${esc(n.promptSub||"")}" placeholder="キー 1〜9 でも選択可" /></div>
+            <div class="field"><label>表示タイミング（秒）</label><input id="fChoicesAt" type="number" min="0" step="0.1" value="${n.choicesAt != null && n.choicesAt !== "end" ? esc(String(n.choicesAt)) : ""}" placeholder="空欄＝動画終了後" /></div>
+          </div>
+          <div class="choices" id="choiceRows"></div>
+          <div class="toolbar"><button type="button" class="btn ghost" id="btnAddChoice">＋ 選択肢を追加</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sticky-actions">
+      <button type="button" class="btn btn-lg" id="btnApply">✓ このシーンを反映</button>
+      <button type="button" class="btn ghost" id="btnSetStart">${id !== scenario.start ? "★ 最初のシーンにする" : "★ 開始シーン"}</button>
+      <button type="button" class="btn danger ghost" id="btnDelete">シーン削除</button>
     </div>
   `;
 
@@ -191,16 +470,38 @@ function renderEditor() {
   (n.choices || []).forEach((c, i) => rows.appendChild(choiceRow(c, i)));
   if (!(n.choices||[]).length) rows.appendChild(choiceRow({ label:"", next:"" }, 0));
 
+  const hrows = $("#hotspotRows");
+  (n.hotspots || []).forEach((h, i) => hrows.appendChild(hotspotCard(h, i, id)));
+
+  let activeHotspotIndex = 0;
   $("#fEnding").onchange = (e) => {
     $("#endingFields").style.display = e.target.checked ? "block" : "none";
     $("#branchFields").style.display = e.target.checked ? "none" : "block";
+    const wrap = $("#editorVideoWrap");
+    if (wrap) wrap.style.display = e.target.checked ? "none" : ($("#fVideo").value ? "block" : "none");
+    const atc = $("#actionTestCard");
+    if (atc) atc.style.display = e.target.checked ? "none" : ($("#fVideo").value ? "block" : "none");
   };
   $("#btnAddChoice").onclick = () => rows.appendChild(choiceRow({ label:"", next:"" }, rows.children.length));
+  $("#btnAddHotspot").onclick = () => {
+    hrows.appendChild(hotspotCard({ at: 0, label: "", next: id, x: 50, y: 68, variant: "accent", width: 18 }, hrows.children.length, id));
+    activeHotspotIndex = hrows.children.length - 1;
+    refreshPlacementMarkers(activeHotspotIndex);
+  };
   $("#btnApply").onclick = applyNode;
   $("#btnDelete").onclick = deleteNode;
   const setStart = $("#btnSetStart");
-  if (setStart) setStart.onclick = () => { scenario.start = id; toast("開始ノードを " + id + " に設定しました"); renderSidebar(); };
+  if (setStart && id !== scenario.start) {
+    setStart.onclick = () => { scenario.start = id; toast("開始シーンを " + id + " に設定"); renderSidebar(); };
+  } else if (setStart) {
+    setStart.disabled = true;
+    setStart.style.opacity = "0.6";
+  }
   setupUpload(id);
+  setupPlacementEditor(activeHotspotIndex);
+  setupEditorVideoPreview(id);
+  setupActionTestPlayer(id);
+  setLinks();
 }
 
 function setupUpload(nodeId) {
@@ -232,18 +533,25 @@ async function uploadVideo(nodeId, file) {
   fd.append("file", file);
 
   try {
-    const res = await fetch(`/api/upload?nodeId=${encodeURIComponent(nodeId)}`, { method: "POST", body: fd });
+    const res = await fetch(`/api/upload?project=${encodeURIComponent(projectId)}&nodeId=${encodeURIComponent(nodeId)}`, { method: "POST", body: fd });
     const data = await res.json();
     if (!res.ok || !data.ok) throw new Error(data.error || "アップロード失敗");
 
     $("#fVideo").value = data.path;
     $("#videoCurrent").textContent = data.path;
     const preview = $("#videoPreview");
-    preview.src = "../" + data.path + "?_=" + Date.now();
+    preview.src = videoUrl(data.path, projectId) + "?_=" + Date.now();
     progress.textContent = `✅ 保存しました: ${data.filename} (${(data.size / 1024 / 1024).toFixed(1)} MB)`;
     toast("動画をアップロードしました");
 
     scenario.nodes[nodeId].video = data.path;
+    const wrap = $("#editorVideoWrap");
+    if (wrap) wrap.style.display = $("#fEnding")?.checked ? "none" : "block";
+    const atc = $("#actionTestCard");
+    if (atc) atc.style.display = $("#fEnding")?.checked ? "none" : "block";
+    syncActionTestFromEditor(true, true);
+    refreshLiveHotspotPreview();
+    refreshPlacementMarkers(placementActiveIndex);
     await saveJson();
     renderSidebar();
   } catch (e) {
@@ -252,17 +560,721 @@ async function uploadVideo(nodeId, file) {
   }
 }
 
+const FX_IN = [
+  ["none", "なし"],
+  ["fade-in", "フェードイン"],
+  ["fade-in-slow", "フェードイン（ゆっくり）"],
+  ["pop", "ポップ（拡大）"],
+  ["rise", "下からフェードイン"],
+];
+const FX_OUT = [
+  ["none", "なし（即時）"],
+  ["fade-out", "フェードアウト"],
+  ["fade-out-slow", "フェードアウト（ゆっくり）"],
+  ["fade-out-shrink", "フェードアウト（縮小）"],
+];
+
+function fxOptionsHtml(field, options, current) {
+  const cur = current ?? options[0][0];
+  return `<select data-k="${field}">${options
+    .map(([v, label]) => `<option value="${v}"${cur === v ? " selected" : ""}>${esc(label)}</option>`)
+    .join("")}</select>`;
+}
+
+function getChoiceActionType(c) {
+  if (c.action === "link" || (c.link && !c.next)) return "link";
+  return "scene";
+}
+
+function syncChoiceActionPanels(row) {
+  const type = row.querySelector('[data-k="actionType"]').value;
+  row.querySelector('[data-panel="scene"]').classList.toggle("show", type === "scene");
+  row.querySelector('[data-panel="link"]').classList.toggle("show", type === "link");
+}
+
 function choiceRow(c, i) {
   const div = document.createElement("div");
-  div.className = "choice-row";
+  div.className = "choice-block";
   const nodeIds = Object.keys(scenario.nodes);
+  const variants = ["primary", "success", "warning", "danger", "accent", "ghost"];
+  const actionType = getChoiceActionType(c);
   div.innerHTML = `
-    <input data-k="label" placeholder="ボタンラベル" value="${esc(c.label||"")}" />
-    <select data-k="next">${nodeIds.map(id=>`<option value="${id}" ${c.next===id?"selected":""}>${id}</option>`).join("")}</select>
-    <button type="button" class="btn ghost danger" title="削除">✕</button>
+    <div class="choice-block-title">選択肢 ${i + 1}</div>
+    <div class="choice-row">
+      <div class="field"><label>ボタン文字</label><input data-k="label" placeholder="例: 左へ進む" value="${esc(c.label||"")}" /></div>
+      <div class="field"><label>色</label><select data-k="variant">${variants.map(v=>`<option value="${v}" ${c.variant===v?"selected":""}>${v}</option>`).join("")}</select></div>
+      <button type="button" class="btn ghost danger" title="削除" style="align-self:end">✕</button>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>クリック時の動作</label>
+      <select data-k="actionType">
+        <option value="scene" ${actionType==="scene"?"selected":""}>分岐シーン</option>
+        <option value="link" ${actionType==="link"?"selected":""}>外部サイトを開く</option>
+      </select>
+    </div>
+    <div class="action-panel ${actionType==="scene"?"show":""}" data-panel="scene">
+      <div class="field"><label>分岐先シーン</label><select data-k="next">${nodeIds.map(nid=>`<option value="${nid}" ${c.next===nid?"selected":""}>${nid}</option>`).join("")}</select></div>
+    </div>
+    <div class="action-panel ${actionType==="link"?"show":""}" data-panel="link">
+      <div class="field"><label>サイト URL</label><input data-k="link" type="url" value="${esc(c.link||"")}" placeholder="https://example.com" /></div>
+      <div class="check-row" style="margin-top:8px">
+        <input type="checkbox" id="choiceNewTab${i}" data-k="openInNewTab" ${c.openInNewTab !== false ? "checked" : ""} />
+        <label for="choiceNewTab${i}">新しいタブで開く</label>
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label>表示時エフェクト</label>${fxOptionsHtml("appear", FX_IN, c.appear || "rise")}</div>
+    </div>
+    <div class="field" style="margin-top:10px;margin-bottom:0">
+      <label>ボタン画像（任意）</label>
+      <div class="row" style="grid-template-columns:1fr auto;align-items:center">
+        <input data-k="image" value="${esc(c.image||"")}" placeholder="assets/button.png" />
+        <button type="button" class="btn ghost btn-upload-choice-img">画像UP</button>
+      </div>
+    </div>
   `;
-  div.querySelector("button").onclick = () => div.remove();
+  const file = document.createElement("input");
+  file.type = "file";
+  file.accept = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
+  file.style.display = "none";
+  div.appendChild(file);
+  div.querySelector(".btn-upload-choice-img").onclick = () => file.click();
+  file.onchange = () => { if (file.files[0]) uploadButtonImage(file.files[0], div, `choice-${i}`); file.value = ""; };
+  div.querySelector("button.danger").onclick = () => div.remove();
+  div.querySelector('[data-k="actionType"]').addEventListener("change", () => syncChoiceActionPanels(div));
+  syncChoiceActionPanels(div);
   return div;
+}
+
+function getHotspotActionType(h) {
+  if (h.action === "link" || (h.link && !h.next)) return "link";
+  if (h.action === "scene") return "scene";
+  return h.link && !h.next ? "link" : "scene";
+}
+
+function syncHotspotActionPanels(card) {
+  const type = card.querySelector('[data-k="actionType"]').value;
+  card.querySelector('[data-panel="scene"]').classList.toggle("show", type === "scene");
+  card.querySelector('[data-panel="link"]').classList.toggle("show", type === "link");
+}
+
+function hotspotCard(h, i, nodeId) {
+  const actionType = getHotspotActionType(h);
+  const div = document.createElement("div");
+  div.className = "hotspot-card";
+  div.dataset.index = String(i);
+  const nodeIds = Object.keys(scenario.nodes);
+  const variants = ["accent", "primary", "success", "warning", "danger", "ghost"];
+  div.innerHTML = `
+    <div class="hotspot-card-head">
+      <strong>動画内ボタン ${i + 1}</strong>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button type="button" class="btn ghost btn-select-marker">📍 位置を編集</button>
+        <button type="button" class="btn ghost danger btn-del">削除</button>
+      </div>
+    </div>
+
+    <p class="hotspot-section-title">アクション（クリック後）</p>
+    <div class="field">
+      <label>動作の種類</label>
+      <select data-k="actionType">
+        <option value="scene" ${actionType==="scene"?"selected":""}>分岐シーン（動画を切り替え）</option>
+        <option value="link" ${actionType==="link"?"selected":""}>外部サイトを開く</option>
+      </select>
+    </div>
+    <div class="action-panel ${actionType==="scene"?"show":""}" data-panel="scene">
+      <div class="field"><label>分岐先シーン</label>
+        <select data-k="next">${nodeIds.map(nid=>`<option value="${nid}" ${h.next===nid?"selected":""}>${nid}</option>`).join("")}</select>
+      </div>
+    </div>
+    <div class="action-panel ${actionType==="link"?"show":""}" data-panel="link">
+      <div class="field"><label>サイト URL</label><input data-k="link" type="url" value="${esc(h.link||"")}" placeholder="https://example.com" /></div>
+      <div class="check-row" style="margin-top:8px">
+        <input type="checkbox" id="hotspotNewTab${i}" data-k="openInNewTab" ${h.openInNewTab !== false ? "checked" : ""} />
+        <label for="hotspotNewTab${i}">新しいタブで開く</label>
+      </div>
+    </div>
+    <div class="row">
+      <div class="field"><label>表示開始（秒）</label><input data-k="at" type="number" min="0" step="0.1" value="${esc(h.at ?? 0)}" /></div>
+      <div class="field"><label>表示時間（秒）</label><input data-k="duration" type="number" min="1" step="0.5" value="${esc(h.duration ?? 30)}" /></div>
+    </div>
+
+    <p class="hotspot-section-title">表示エフェクト</p>
+    <div class="row">
+      <div class="field"><label>表示時（フェードイン）</label>${fxOptionsHtml("appear", FX_IN, h.appear || "pop")}</div>
+      <div class="field"><label>非表示時（フェードアウト）</label>${fxOptionsHtml("disappear", FX_OUT, h.disappear || "none")}</div>
+    </div>
+    <p class="lbl-sub" style="margin:0">非表示は「表示時間」終了時と、クリック後に適用されます。</p>
+
+    <p class="hotspot-section-title">見た目（画像・サイズ）</p>
+    <div class="field">
+      <label>ボタン画像</label>
+      <div class="row" style="grid-template-columns:1fr auto;align-items:center">
+        <input data-k="image" value="${esc(h.image||"")}" placeholder="assets/..." />
+        <button type="button" class="btn btn-upload-img">画像をアップロード</button>
+      </div>
+      <img class="hotspot-image-preview btn-preview" alt="" ${h.image ? `src="${esc(videoUrl(h.image, projectId))}"` : 'style="display:none"'} />
+      <p class="lbl-sub">PNG / WebP 推奨。プレビューの<strong>黄色ガイド</strong>の角／辺をドラッグしてサイズ調整。</p>
+    </div>
+    <div class="row-3">
+      <div class="field"><label>幅（%）</label><input data-k="width" type="number" min="5" max="90" step="0.5" value="${esc(h.width ?? 18)}" /></div>
+      <div class="field"><label>高さ（%・任意）</label><input data-k="height" type="number" min="0" max="90" step="0.5" value="${esc(h.height ?? "")}" placeholder="自動" /></div>
+      <div class="field"><label>文字ラベル（任意）</label><input data-k="label" value="${esc(h.label||"")}" placeholder="ツールチップ用" /></div>
+      <div class="field"><label>文字ボタン色</label>
+        <select data-k="variant">${variants.map(v=>`<option value="${v}" ${h.variant===v?"selected":""}>${v}</option>`).join("")}
+        </select>
+      </div>
+    </div>
+
+    <p class="hotspot-section-title">位置（%）</p>
+    <div class="row">
+      <div class="field"><label>横 x</label><input data-k="x" type="number" min="0" max="100" step="0.5" value="${esc(h.x ?? 50)}" /></div>
+      <div class="field"><label>縦 y</label><input data-k="y" type="number" min="0" max="100" step="0.5" value="${esc(h.y ?? 68)}" /></div>
+    </div>
+  `;
+  const file = document.createElement("input");
+  file.type = "file";
+  file.accept = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
+  file.style.display = "none";
+  div.appendChild(file);
+  div.querySelector(".btn-upload-img").onclick = () => file.click();
+  file.onchange = () => { if (file.files[0]) uploadButtonImage(file.files[0], div, `${nodeId}-h${i}`); file.value = ""; };
+  div.querySelector(".btn-del").onclick = () => {
+    div.remove();
+    refreshPlacementMarkers();
+    refreshLiveHotspotPreview();
+  };
+  div.querySelector(".btn-select-marker").onclick = () => {
+    document.querySelectorAll(".hotspot-card").forEach((el) => el.classList.remove("active-card"));
+    div.classList.add("active-card");
+    refreshPlacementMarkers(Number(div.dataset.index));
+  };
+  div.querySelector('[data-k="actionType"]').addEventListener("change", () => syncHotspotActionPanels(div));
+  syncHotspotActionPanels(div);
+  div.querySelectorAll("input,select").forEach((el) => {
+    const sync = () => {
+      const idx = Number(div.dataset.index);
+      $("#liveHotspotLayer")?.querySelector(`[data-live-hotspot="live:${idx}"]`)?.remove();
+      refreshPlacementMarkers(idx);
+      refreshLiveHotspotPreview();
+    };
+    el.addEventListener("input", sync);
+    el.addEventListener("change", sync);
+  });
+  return div;
+}
+
+let placementActiveIndex = 0;
+let editorPreviewVideoBound = null;
+
+function formatEditorTime(t) {
+  if (!Number.isFinite(t)) return "0:00";
+  const m = Math.floor(t / 60);
+  const s = Math.floor(t % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function readHotspotRowFromCard(row) {
+  const actionType = row.querySelector('[data-k="actionType"]').value;
+  const heightRaw = row.querySelector('[data-k="height"]').value.trim();
+  const out = {
+    at: Number(row.querySelector('[data-k="at"]').value),
+    duration: Number(row.querySelector('[data-k="duration"]').value) || 30,
+    label: row.querySelector('[data-k="label"]').value.trim(),
+    x: Number(row.querySelector('[data-k="x"]').value),
+    y: Number(row.querySelector('[data-k="y"]').value),
+    width: Number(row.querySelector('[data-k="width"]').value),
+    height: heightRaw === "" ? 0 : Number(heightRaw),
+    image: row.querySelector('[data-k="image"]').value.trim(),
+  };
+  if (actionType === "link") {
+    out.action = "link";
+    out.link = row.querySelector('[data-k="link"]').value.trim();
+    const chk = row.querySelector('[data-k="openInNewTab"]');
+    if (chk && !chk.checked) out.openInNewTab = false;
+  } else {
+    out.action = "scene";
+    out.next = row.querySelector('[data-k="next"]').value;
+  }
+  out.appear = row.querySelector('[data-k="appear"]')?.value || "pop";
+  out.disappear = row.querySelector('[data-k="disappear"]')?.value || "none";
+  return out;
+}
+
+function readHotspotsFromEditor() {
+  const rows = $("#hotspotRows");
+  if (!rows) return [];
+  return [...rows.querySelectorAll(".hotspot-card")]
+    .map(readHotspotRowFromCard)
+    .filter((h) => Number.isFinite(h.at) && (h.label || h.image));
+}
+
+function readHotspotsFromEditorForAction() {
+  return readHotspotsFromEditor().filter((h) => (h.action === "link" ? !!h.link : !!h.next));
+}
+
+const HOTSPOT_FX_OUT_MS = {
+  "fade-out": 400,
+  "fade-out-shrink": 420,
+  "fade-out-slow": 850,
+};
+
+function hotspotAppearClass(h) {
+  const allowed = new Set(["none", "fade-in", "fade-in-slow", "pop", "rise"]);
+  const mode = allowed.has(h.appear) ? h.appear : "pop";
+  return `fx-in-${mode}`;
+}
+
+function removeHotspotFx(el, h, done) {
+  const allowedOut = new Set(["none", "fade-out", "fade-out-slow", "fade-out-shrink"]);
+  const mode = allowedOut.has(h.disappear) ? h.disappear : "none";
+  if (!el || mode === "none") {
+    el?.remove();
+    done?.();
+    return;
+  }
+  if (el.classList.contains("is-leaving")) return;
+  el.classList.forEach((c) => {
+    if (c.startsWith("fx-in-")) el.classList.remove(c);
+  });
+  el.classList.add("is-leaving", `fx-out-${mode}`);
+  const ms = HOTSPOT_FX_OUT_MS[mode] || 400;
+  window.setTimeout(() => {
+    el.remove();
+    done?.();
+  }, ms);
+}
+
+function buildHotspotVisualEl(h, idx, layerW, layerH, opts) {
+  const tag = opts?.interactive ? "button" : "div";
+  const el = document.createElement(tag);
+  if (opts?.interactive) el.type = "button";
+  el.className =
+    "editor-live-hotspot hotspot " +
+    hotspotAppearClass(h) +
+    (h.image ? " hotspot-img-btn" : "") +
+    (opts?.extraClass || "");
+  el.style.left = (Number.isFinite(h.x) ? h.x : 50) + "%";
+  el.style.top = (Number.isFinite(h.y) ? h.y : 68) + "%";
+  if (h.image) {
+    const img = document.createElement("img");
+    img.src = videoUrl(h.image, projectId);
+    img.alt = h.label || "ボタン";
+    const wPct = Number.isFinite(h.width) && h.width > 0 ? h.width : 18;
+    img.style.width = `${(layerW * wPct) / 100}px`;
+    if (h.height > 0) img.style.height = `${(layerH * h.height) / 100}px`;
+    el.appendChild(img);
+    if (h.label && opts?.interactive) el.title = h.label;
+  } else {
+    el.textContent = h.label || `#${idx + 1}`;
+  }
+  return el;
+}
+
+function refreshLiveHotspotPreview() {
+  const layer = $("#liveHotspotLayer");
+  const video = $("#videoPreview");
+  const hint = $("#editorPreviewHint");
+  if (!layer || !video) return;
+  if ($("#fEnding")?.checked || !$("#fVideo")?.value) {
+    layer.innerHTML = "";
+    return;
+  }
+  const t = video.currentTime || 0;
+  const list = readHotspotsFromEditor();
+  const layerW = layer.clientWidth || 1;
+  const layerH = layer.clientHeight || 1;
+  const visible = list.filter((h) => t >= h.at && t <= h.at + h.duration);
+  if (hint) {
+    hint.textContent = `${formatEditorTime(t)} — 表示中 ${visible.length} 個（見た目のみ・エフェクト反映）`;
+  }
+
+  list.forEach((h, idx) => {
+    const key = `live:${idx}`;
+    const until = h.at + h.duration;
+    const el = layer.querySelector(`[data-live-hotspot="${key}"]`);
+    if (t < h.at) {
+      el?.remove();
+      return;
+    }
+    if (t > until) {
+      if (el) removeHotspotFx(el, h, () => {});
+      return;
+    }
+    if (video.paused && idx === placementActiveIndex) {
+      if (el && !el.classList.contains("is-leaving")) el.remove();
+      return;
+    }
+    if (el) return;
+    const node = buildHotspotVisualEl(h, idx, layerW, layerH, {});
+    node.dataset.liveHotspot = key;
+    layer.appendChild(node);
+  });
+}
+
+function setupEditorVideoPreview(_nodeId) {
+  const video = $("#videoPreview");
+  const placement = $("#placementLayer");
+  if (!video) return;
+
+  if (editorPreviewVideoBound !== video) {
+    editorPreviewVideoBound = video;
+    const tick = () => refreshLiveHotspotPreview();
+    video.addEventListener("timeupdate", tick);
+    video.addEventListener("seeked", () => {
+      const live = $("#liveHotspotLayer");
+      if (live) {
+        [...live.children].forEach((ch) => {
+          if (!ch.classList.contains("is-leaving")) ch.remove();
+        });
+      }
+      refreshLiveHotspotPreview();
+    });
+    video.addEventListener("loadedmetadata", tick);
+    video.addEventListener("play", () => placement?.classList.add("hidden-while-playing"));
+    video.addEventListener("pause", () => {
+      placement?.classList.remove("hidden-while-playing");
+      refreshPlacementMarkers(placementActiveIndex);
+    });
+  }
+
+  const btnStart = $("#btnPreviewFromStart");
+  if (btnStart) {
+    btnStart.onclick = () => {
+      video.currentTime = 0;
+      video.play().catch(() => {});
+    };
+  }
+  const btnAt = $("#btnPreviewAtHotspot");
+  if (btnAt) {
+    btnAt.onclick = () => {
+      const cards = [...$("#hotspotRows").querySelectorAll(".hotspot-card")];
+      const card = cards[placementActiveIndex] || cards[0];
+      if (!card) return toast("先に動画内ボタンを追加してください");
+      const sec = Number(card.querySelector('[data-k="at"]').value);
+      video.currentTime = Number.isFinite(sec) ? Math.max(0, sec) : 0;
+      card.classList.add("active-card");
+      refreshPlacementMarkers(Number(card.dataset.index));
+      refreshLiveHotspotPreview();
+      video.play().catch(() => {});
+    };
+  }
+
+  refreshLiveHotspotPreview();
+}
+
+let actionTestSceneId = null;
+let actionTestShownKeys = new Set();
+let actionTestHotspots = [];
+
+function syncActionTestFromEditor(resetTime, silent) {
+  const video = $("#actionTestVideo");
+  const layer = $("#actionTestHotspotLayer");
+  const src = $("#fVideo")?.value;
+  if (!video || !layer || !src || $("#fEnding")?.checked) return;
+
+  actionTestSceneId = selectedId;
+  actionTestShownKeys.clear();
+  layer.innerHTML = "";
+  actionTestHotspots = readHotspotsFromEditorForAction();
+
+  video.src = videoUrl(src, projectId) + "?_=" + Date.now();
+  if (resetTime) video.currentTime = 0;
+  const label = $("#actionTestSceneLabel");
+  if (label) label.textContent = selectedId;
+
+  renderActionTestHotspots(video.currentTime || 0);
+  if (!silent) toast("動作テストにフォームの設定を反映しました");
+}
+
+function loadActionTestScene(nodeId) {
+  const node = scenario.nodes[nodeId];
+  if (!node) {
+    toast("分岐先シーンが見つかりません");
+    return;
+  }
+  if (node.ending) {
+    toast(`シーン「${nodeId}」はエンディングです（テスト終了）`);
+    $("#actionTestVideo")?.pause();
+    return;
+  }
+  if (!node.video) {
+    toast("分岐先に動画がありません");
+    return;
+  }
+
+  actionTestSceneId = nodeId;
+  actionTestShownKeys.clear();
+  $("#actionTestHotspotLayer").innerHTML = "";
+  actionTestHotspots = (node.hotspots || []).slice();
+
+  const video = $("#actionTestVideo");
+  video.src = videoUrl(node.video, projectId) + "?_=" + Date.now();
+  video.currentTime = 0;
+  const label = $("#actionTestSceneLabel");
+  if (label) label.textContent = nodeId;
+  toast(`動作テスト: シーン「${nodeId}」へ`);
+  video.play().catch(() => {});
+}
+
+function createActionTestHotspotButton(h, key) {
+  const layer = $("#actionTestHotspotLayer");
+  const layerW = layer?.clientWidth || 320;
+  const layerH = layer?.clientHeight || 180;
+  const idx = Number(String(key).split(":").pop()) || 0;
+  const btn = buildHotspotVisualEl(h, idx, layerW, layerH, { interactive: true, extraClass: "action-test-hotspot" });
+  btn.dataset.testHotspot = key;
+  btn.style.pointerEvents = "auto";
+  btn.style.cursor = "pointer";
+  if (!h.image) {
+    btn.style.border = "none";
+    btn.style.background = "rgba(61, 124, 255, 0.92)";
+    btn.style.padding = "10px 16px";
+    btn.style.borderRadius = "12px";
+    btn.style.color = "#fff";
+  }
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const finish = () => {
+      actionTestShownKeys.add(key);
+      $("#actionTestVideo")?.pause();
+      if (h.action === "link" || h.link) {
+        const url = h.link;
+        if (!url) return toast("URL が空です");
+        if (h.openInNewTab !== false) window.open(url, "_blank", "noopener,noreferrer");
+        else location.href = url;
+        toast("リンクを開きました");
+        return;
+      }
+      if (h.next) loadActionTestScene(h.next);
+      else toast("分岐先が設定されていません");
+    };
+    removeHotspotFx(btn, h, finish);
+  };
+  return btn;
+}
+
+function renderActionTestHotspots(t) {
+  const layer = $("#actionTestHotspotLayer");
+  const hint = $("#actionTestHint");
+  if (!layer) return;
+
+  actionTestHotspots.forEach((h, i) => {
+    const key = `${actionTestSceneId}:${i}`;
+    const until = h.at + (h.duration ?? 30);
+    const el = layer.querySelector(`[data-test-hotspot="${key}"]`);
+    if (t < h.at) {
+      if (el && !el.classList.contains("is-leaving")) el.remove();
+      return;
+    }
+    if (t > until) {
+      if (el) removeHotspotFx(el, h, () => {});
+      return;
+    }
+    if (actionTestShownKeys.has(key)) return;
+    if (el) return;
+    layer.appendChild(createActionTestHotspotButton(h, key));
+  });
+
+  if (hint && actionTestSceneId) {
+    const vis = actionTestHotspots.filter((h) => t >= h.at && t <= h.at + (h.duration ?? 30)).length;
+    hint.textContent = `シーン「${actionTestSceneId}」 ${formatEditorTime(t)} — クリック可能 ${vis} 個`;
+  }
+}
+
+function setupActionTestPlayer(editingNodeId) {
+  const video = $("#actionTestVideo");
+  if (!video) return;
+
+  const link = $("#linkPlaySceneAction");
+  if (link) link.href = playSceneUrl(editingNodeId);
+
+  const btnSync = $("#btnActionTestSync");
+  if (btnSync) btnSync.onclick = () => syncActionTestFromEditor(true, false);
+  const btnReset = $("#btnActionTestReset");
+  if (btnReset) {
+    btnReset.onclick = () => syncActionTestFromEditor(true, false);
+  }
+
+  if (!video.dataset.actionTestBound) {
+    video.dataset.actionTestBound = "1";
+    video.addEventListener("timeupdate", () => renderActionTestHotspots(video.currentTime));
+    video.addEventListener("seeked", () => {
+      actionTestShownKeys.clear();
+      $("#actionTestHotspotLayer").innerHTML = "";
+      renderActionTestHotspots(video.currentTime);
+    });
+  }
+
+  syncActionTestFromEditor(true, true);
+}
+
+function setupPlacementEditor(initialIndex = 0) {
+  placementActiveIndex = initialIndex;
+  const layer = $("#placementLayer");
+  if (!layer) return;
+  layer.onclick = (e) => {
+    if (e.target !== layer) return;
+    const cards = [...$("#hotspotRows").querySelectorAll(".hotspot-card")];
+    if (!cards.length) {
+      $("#btnAddHotspot").click();
+      return;
+    }
+    const card = cards[placementActiveIndex] || cards[cards.length - 1];
+    const rect = layer.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 100;
+    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    card.querySelector('[data-k="x"]').value = x.toFixed(1);
+    card.querySelector('[data-k="y"]').value = y.toFixed(1);
+    refreshPlacementMarkers(Number(card.dataset.index));
+  };
+  refreshPlacementMarkers(initialIndex);
+  if (!window._ivPlacementResize) {
+    window._ivPlacementResize = true;
+    window.addEventListener("resize", () => refreshPlacementMarkers());
+  }
+}
+
+function applyFrameSizePx(frame, layer, wPct, hPct) {
+  const rect = layer.getBoundingClientRect();
+  frame.style.width = `${(rect.width * wPct) / 100}px`;
+  if (hPct > 0) frame.style.height = `${(rect.height * hPct) / 100}px`;
+  else frame.style.height = "auto";
+}
+
+function attachResizeHandle(handle, mode, card, layer, frame, idx) {
+  handle.onmousedown = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    placementActiveIndex = idx;
+    const wIn = card.querySelector('[data-k="width"]');
+    const hIn = card.querySelector('[data-k="height"]');
+    const startX = ev.clientX;
+    const startY = ev.clientY;
+    const startW = Number(wIn.value) || 18;
+    const startH = Number(hIn.value) || 0;
+    const rect = layer.getBoundingClientRect();
+    const move = (me) => {
+      const dx = ((me.clientX - startX) / rect.width) * 100;
+      const dy = ((me.clientY - startY) / rect.height) * 100;
+      let nw = startW;
+      let nh = startH;
+      if (mode === "se" || mode === "e") nw = Math.max(5, Math.min(90, startW + dx * 2));
+      if (mode === "se" || mode === "s") {
+        const baseH = startH > 0 ? startH : startW * 0.55;
+        nh = Math.max(3, Math.min(90, baseH + dy * 2));
+        hIn.value = nh.toFixed(1);
+      }
+      wIn.value = nw.toFixed(1);
+      applyFrameSizePx(frame, layer, nw, nh > 0 ? nh : 0);
+    };
+    const up = () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+      refreshPlacementMarkers(idx);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+  };
+}
+
+function refreshPlacementMarkers(activeIndex = placementActiveIndex) {
+  placementActiveIndex = activeIndex;
+  const layer = $("#placementLayer");
+  if (!layer) return;
+  layer.querySelectorAll(".placement-marker").forEach((m) => m.remove());
+  const video = $("#videoPreview");
+  if (video && !video.paused) {
+    refreshLiveHotspotPreview();
+    return;
+  }
+  const cards = [...$("#hotspotRows").querySelectorAll(".hotspot-card")];
+  cards.forEach((card, idx) => {
+    if (idx !== activeIndex) return;
+    const x = Number(card.querySelector('[data-k="x"]').value);
+    const y = Number(card.querySelector('[data-k="y"]').value);
+    const label = card.querySelector('[data-k="label"]').value.trim() || `#${idx + 1}`;
+    const imgPath = card.querySelector('[data-k="image"]').value.trim();
+    const marker = document.createElement("div");
+    marker.className = "placement-marker" + (idx === activeIndex ? " active" : "");
+    marker.style.left = x + "%";
+    marker.style.top = y + "%";
+    if (imgPath) {
+      const frame = document.createElement("div");
+      frame.className = "resize-frame";
+      const wPct = Number(card.querySelector('[data-k="width"]').value) || 18;
+      const hRaw = card.querySelector('[data-k="height"]').value.trim();
+      const hPct = hRaw === "" ? 0 : Number(hRaw);
+      applyFrameSizePx(frame, layer, wPct, hPct);
+      const img = document.createElement("img");
+      img.src = videoUrl(imgPath, projectId);
+      img.alt = label;
+      frame.appendChild(img);
+      if (idx === activeIndex) {
+        ["se", "e", "s"].forEach((mode) => {
+          const handle = document.createElement("span");
+          handle.className = `resize-handle handle-${mode}`;
+          frame.appendChild(handle);
+          attachResizeHandle(handle, mode, card, layer, frame, idx);
+        });
+      }
+      marker.appendChild(frame);
+    } else {
+      marker.textContent = label;
+    }
+    marker.onmousedown = (ev) => {
+      if (ev.target.classList.contains("resize-handle")) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      placementActiveIndex = idx;
+      card.classList.add("active-card");
+      document.querySelectorAll(".hotspot-card").forEach((el, j) => { if (j !== idx) el.classList.remove("active-card"); });
+      const move = (me) => {
+        const rect = layer.getBoundingClientRect();
+        const nx = Math.max(0, Math.min(100, ((me.clientX - rect.left) / rect.width) * 100));
+        const ny = Math.max(0, Math.min(100, ((me.clientY - rect.top) / rect.height) * 100));
+        card.querySelector('[data-k="x"]').value = nx.toFixed(1);
+        card.querySelector('[data-k="y"]').value = ny.toFixed(1);
+        marker.style.left = nx + "%";
+        marker.style.top = ny + "%";
+      };
+      const up = () => {
+        window.removeEventListener("mousemove", move);
+        window.removeEventListener("mouseup", up);
+        refreshPlacementMarkers(idx);
+      };
+      window.addEventListener("mousemove", move);
+      window.addEventListener("mouseup", up);
+    };
+    marker.onclick = (ev) => ev.stopPropagation();
+    layer.appendChild(marker);
+  });
+  refreshLiveHotspotPreview();
+}
+
+async function uploadButtonImage(file, container, assetId) {
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  if (!["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "")) {
+    return alert("画像は png / jpg / webp / gif / svg を選んでください");
+  }
+  const fd = new FormData();
+  fd.append("file", file);
+  try {
+    const res = await fetch(`/api/upload?project=${encodeURIComponent(projectId)}&kind=image&assetId=${encodeURIComponent(assetId)}`, { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || "アップロード失敗");
+    container.querySelector('[data-k="image"]').value = data.path;
+    const prev = container.querySelector(".btn-preview");
+    if (prev) {
+      prev.src = videoUrl(data.path, projectId) + "?_=" + Date.now();
+      prev.style.display = "block";
+    }
+    toast("ボタン画像をアップロードしました");
+    refreshPlacementMarkers();
+    refreshLiveHotspotPreview();
+  } catch (e) {
+    alert("画像アップロード失敗: " + e.message);
+  }
 }
 
 function applyNode() {
@@ -271,21 +1283,71 @@ function applyNode() {
   if (!newId) return alert("ノード ID を入力してください");
 
   let videoPath = $("#fVideo").value.trim();
-  if (!videoPath) return alert("動画をアップロードしてください");
+  const isEnding = $("#fEnding").checked;
+  if (!videoPath && isEnding) return alert("動画をアップロードしてください");
 
   const node = {
-    video: videoPath,
-    ending: $("#fEnding").checked,
+    video: videoPath || "videos/" + newId + ".mp4",
+    ending: isEnding,
   };
   if (node.ending) {
     node.endingTitle = $("#fEndTitle").value.trim();
     node.endingType = $("#fEndType").value;
   } else {
+    node.sceneTitle = $("#fSceneTitle").value.trim();
     node.prompt = $("#fPrompt").value.trim();
-    node.choices = [...$("#choiceRows").querySelectorAll(".choice-row")].map((row) => ({
-      label: row.querySelector('[data-k="label"]').value.trim(),
-      next: row.querySelector('[data-k="next"]').value,
-    })).filter((c) => c.label && c.next);
+    node.promptSub = $("#fPromptSub").value.trim();
+    const choicesAtRaw = $("#fChoicesAt").value.trim();
+    if (choicesAtRaw === "") delete node.choicesAt;
+    else node.choicesAt = Number(choicesAtRaw);
+    node.choices = [...$("#choiceRows").querySelectorAll(".choice-block")].map((row) => {
+      const actionType = row.querySelector('[data-k="actionType"]').value;
+      const out = {
+        label: row.querySelector('[data-k="label"]').value.trim(),
+        variant: row.querySelector('[data-k="variant"]').value,
+        image: row.querySelector('[data-k="image"]')?.value.trim() || undefined,
+      };
+      const cAppear = row.querySelector('[data-k="appear"]')?.value;
+      if (cAppear && cAppear !== "rise") out.appear = cAppear;
+      if (actionType === "link") {
+        out.action = "link";
+        out.link = row.querySelector('[data-k="link"]').value.trim();
+        const chk = row.querySelector('[data-k="openInNewTab"]');
+        if (chk && !chk.checked) out.openInNewTab = false;
+      } else {
+        out.action = "scene";
+        out.next = row.querySelector('[data-k="next"]').value;
+      }
+      return out;
+    }).filter((c) => (c.label || c.image) && (c.action === "link" ? !!c.link : !!c.next));
+    node.hotspots = [...$("#hotspotRows").querySelectorAll(".hotspot-card")].map((row) => {
+      const actionType = row.querySelector('[data-k="actionType"]').value;
+      const heightRaw = row.querySelector('[data-k="height"]').value.trim();
+      const out = {
+        at: Number(row.querySelector('[data-k="at"]').value),
+        duration: Number(row.querySelector('[data-k="duration"]').value) || 30,
+        label: row.querySelector('[data-k="label"]').value.trim(),
+        x: Number(row.querySelector('[data-k="x"]').value),
+        y: Number(row.querySelector('[data-k="y"]').value),
+        width: Number(row.querySelector('[data-k="width"]').value),
+        variant: row.querySelector('[data-k="variant"]').value,
+        image: row.querySelector('[data-k="image"]').value.trim() || undefined,
+      };
+      out.appear = row.querySelector('[data-k="appear"]').value || "pop";
+      const hDisappear = row.querySelector('[data-k="disappear"]').value || "none";
+      if (hDisappear !== "none") out.disappear = hDisappear;
+      if (heightRaw !== "") out.height = Number(heightRaw);
+      if (actionType === "link") {
+        out.action = "link";
+        out.link = row.querySelector('[data-k="link"]').value.trim();
+        const chk = row.querySelector('[data-k="openInNewTab"]');
+        if (chk && !chk.checked) out.openInNewTab = false;
+      } else {
+        out.action = "scene";
+        out.next = row.querySelector('[data-k="next"]').value;
+      }
+      return out;
+    }).filter((h) => Number.isFinite(h.at) && (h.label || h.image) && (h.action === "link" ? !!h.link : !!h.next));
   }
 
   if (newId !== oldId) {
@@ -301,6 +1363,9 @@ function applyNode() {
     scenario.nodes[oldId] = node;
   }
   toast("ノードを反映しました");
+  if (selectedId === scenario.start && scenario.nodes[selectedId]?.ending) {
+    toast("⚠ 開始ノードがエンディングになっています。分岐は表示されません");
+  }
   renderSidebar();
   renderEditor();
   saveJson();
@@ -326,7 +1391,7 @@ function syncMeta() {
 async function saveJson() {
   syncMeta();
   try {
-    const res = await fetch("/api/scenario", {
+    const res = await fetch("/api/scenario?project=" + encodeURIComponent(projectId), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(scenario, null, 2),
@@ -355,20 +1420,21 @@ function esc(s) {
 
 $("#btnLoad").onclick = load;
 $("#btnSave").onclick = saveJson;
-$("#btnDownload").onclick = saveJson;
 $("#metaTitle").onchange = syncMeta;
 $("#metaStart").onchange = syncMeta;
 $("#metaPublicUrl").onchange = () => { syncMeta(); saveJson(); };
 
 $("#btnAddNode").onclick = () => {
+  if (!scenario.nodes) scenario.nodes = {};
   let base = "scene";
   let i = 1;
   while (scenario.nodes[base + i]) i++;
   const id = base + i;
-  scenario.nodes[id] = { video: "videos/" + id + ".mp4", prompt: "次は?", choices: [] };
+  scenario.nodes[id] = { video: "", prompt: "次は?", choices: [] };
   selectedId = id;
   renderSidebar();
   renderEditor();
+  saveJson();
   toast("ノード " + id + " を追加しました");
 };
 

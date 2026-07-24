@@ -1,0 +1,21 @@
+# フル機能（エディター・動画アップロード・保存）をインターネット公開する用
+# Netlify 静的ホスティングだけでは /api/* が動かないため、Node サーバーが必要です。
+#
+# 使い方: https://render.com → New → Blueprint → このリポジトリを接続
+# 詳細: interactive-video/DEPLOY-FULL.md
+
+services:
+  - type: web
+    name: interactive-video
+    runtime: node
+    rootDir: interactive-video
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+    disk:
+      name: interactive-video-projects
+      mountPath: /opt/render/project/src/interactive-video/projects
+      sizeGB: 1

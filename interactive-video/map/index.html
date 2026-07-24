@@ -32,7 +32,7 @@
 <body>
   <header>
     <h1 id="ttl">分岐マップ</h1>
-    <a class="back" href="index.html">← プレイヤーに戻る</a>
+    <a class="back" id="linkBack" href="../play.html">← プレイヤーに戻る</a>
     <div class="legend">
       <span><span class="dot" style="background:#2b6cff"></span>スタート</span>
       <span><span class="dot" style="background:#3a4150"></span>分岐</span>
@@ -44,14 +44,18 @@
   <div id="wrap"><svg id="svg"></svg></div>
   <div id="err" style="display:none"></div>
 
+<script src="../project.js?v=2"></script>
 <script>
+const projectId = getProjectId();
+document.getElementById("linkBack").href = withProject("../play.html", projectId);
+
 const NS = "http://www.w3.org/2000/svg";
 const NODE_W = 190, NODE_H = 58, GAP_X = 70, GAP_Y = 60, PAD = 40;
 
 async function boot() {
   let scenario;
   try {
-    scenario = await (await fetch("../scenario.json?_=" + Date.now(), { cache: "no-store" })).json();
+    scenario = await (await fetch(scenarioUrl(projectId), { cache: "no-store" })).json();
   } catch (e) {
     document.getElementById("svg").style.display = "none";
     const err = document.getElementById("err");

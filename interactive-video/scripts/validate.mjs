@@ -4,7 +4,9 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const scenarioPath = join(root, "scenario.json");
+const projectId = process.argv[2] || "default";
+const projectDir = join(root, "projects", projectId);
+const scenarioPath = join(projectDir, "scenario.json");
 
 function fail(msg) {
   console.error("❌ " + msg);
@@ -15,7 +17,7 @@ function ok(msg) {
   console.log("✅ " + msg);
 }
 
-if (!existsSync(scenarioPath)) fail("scenario.json が見つかりません");
+if (!existsSync(scenarioPath)) fail(`projects/${projectId}/scenario.json が見つかりません`);
 
 let scenario;
 try {
@@ -41,7 +43,7 @@ for (const [id, node] of Object.entries(scenario.nodes)) {
     errors++;
     continue;
   }
-  const videoPath = join(root, node.video);
+  const videoPath = join(projectDir, node.video);
   if (!existsSync(videoPath)) {
     console.warn(`⚠ nodes.${id}: 動画が見つかりません (${node.video}) — npm run demo:videos で生成できます`);
     warnings++;
@@ -53,18 +55,49 @@ for (const [id, node] of Object.entries(scenario.nodes)) {
     warnings++;
   }
   for (const c of choices) {
-    if (!c.label) {
-      console.error(`❌ nodes.${id}: choice に label が必要です`);
+    if (!c.label && !c.image) {
+      console.error(`❌ nodes.${id}: choice に label または image が必要です`);
       errors++;
     }
-    if (!c.next) {
-      console.error(`❌ nodes.${id}: choice に next が必要です`);
+    const isLink = c.action === "link" || (c.link && !c.next);
+    if (isLink) {
+      if (!c.link) {
+        console.error(`❌ nodes.${id}: link 動作の choice に link（URL）が必要です`);
+        errors++;
+      }
+    } else if (!c.next) {
+      console.error(`❌ nodes.${id}: choice に next が必要です（または link を指定）`);
       errors++;
     } else if (!scenario.nodes[c.next]) {
       console.error(`❌ nodes.${id}: next "${c.next}" が nodes に存在しません`);
       errors++;
     } else {
       referenced.add(c.next);
+    }
+  }
+  for (const h of node.hotspots || []) {
+    if (!h.label && !h.image) {
+      console.error(`❌ nodes.${id}: hotspot に label または image が必要です`);
+      errors++;
+    }
+    if (!Number.isFinite(Number(h.at))) {
+      console.error(`❌ nodes.${id}: hotspot.at（秒）が必要です`);
+      errors++;
+    }
+    const isLink = h.action === "link" || (h.link && !h.next);
+    if (isLink) {
+      if (!h.link) {
+        console.error(`❌ nodes.${id}: link 動作の hotspot に link（URL）が必要です`);
+        errors++;
+      }
+    } else if (!h.next) {
+      console.error(`❌ nodes.${id}: hotspot に next が必要です（または link を指定）`);
+      errors++;
+    } else if (!scenario.nodes[h.next]) {
+      console.error(`❌ nodes.${id}: hotspot next "${h.next}" が nodes に存在しません`);
+      errors++;
+    } else {
+      referenced.add(h.next);
     }
   }
 }
@@ -80,7 +113,7 @@ if (errors) {
   process.exit(1);
 }
 
-ok(`"${scenario.title || "無題"}" — ノード ${ids.length} 個, 警告 ${warnings} 件`);
-console.log("   プレイヤー: npm start → http://localhost:3000");
-console.log("   エディター: http://localhost:3000/editor/");
-console.log("   埋め込み:  http://localhost:3000/embed/");
+ok(`[${projectId}] "${scenario.title || "無題"}" — ノード ${ids.length} 個, 警告 ${warnings} 件`);
+console.log(`   プレイヤー: npm start → http://localhost:3000/play.html?project=${projectId}`);
+console.log(`   エディター: http://localhost:3000/editor/?project=${projectId}`);
+console.log(`   埋め込み:  http://localhost:3000/embed/?project=${projectId}`);
