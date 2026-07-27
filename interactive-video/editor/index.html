@@ -68,7 +68,43 @@
   .hotspot-image-preview { width:100%; max-width:200px; max-height:100px; object-fit:contain; background:#0c1018; border:1px solid var(--line); border-radius:10px; padding:8px; margin-top:8px; }
   .video-stage { position:relative; width:100%; margin-top:12px; border-radius:12px; overflow:hidden; border:2px solid var(--accent); background:#000; box-shadow:0 8px 32px rgba(0,0,0,.4); }
   .video-stage-label { position:absolute; top:8px; left:8px; z-index:2; background:rgba(0,0,0,.65); color:#fff; font-size:11px; font-weight:700; padding:4px 8px; border-radius:6px; pointer-events:none; }
-  .video-stage video { width:100%; max-height:360px; display:block; }
+  .video-stage video { width:100%; height:100%; max-height:none; display:block; object-fit:contain; background:#000; }
+  /* 本番プレイヤー（player.css #stage）と同じ 16:9。編集ペイン全幅・ビューポート高さまで拡大 */
+  .editor-video-wrap.preview-hero { margin-top:0; position:sticky; top:58px; z-index:8; background:linear-gradient(180deg,#0a0c10 0%,#0a0c10 92%,transparent); padding-bottom:4px; }
+  .card-preview-large { margin-left:-24px; margin-right:-24px; width:calc(100% + 48px); max-width:none; border-radius:0; border-left:none; border-right:none; }
+  .card-preview-large .card-head { border-radius:0; }
+  .editor-video-wrap .video-stage.editor-preview-stage {
+    width:100%;
+    max-width:none;
+    margin:0;
+    aspect-ratio:16 / 9;
+    min-height:min(52vw, 420px);
+    max-height:none;
+    height:auto;
+    border-radius:0;
+    border-left:none;
+    border-right:none;
+    border-top:none;
+    box-shadow:none;
+  }
+  @media (min-width:961px) {
+    .editor-video-wrap .video-stage.editor-preview-stage {
+      min-height:min(calc((100vw - 300px - 48px) * 9 / 16), calc(100vh - 160px));
+    }
+  }
+  .card-body-preview { padding:0; }
+  .card-body-preview .preview-hero-callout { margin:14px 18px 10px; }
+  .card-body-preview .editor-preview-bar {
+    margin:12px 18px 0;
+    padding-bottom:4px;
+  }
+  .card-body-preview .preview-upload-block { padding:16px 18px 18px; border-top:1px solid var(--line); }
+  .video-stage.action-test-stage {
+    max-width:720px;
+    aspect-ratio:16 / 9;
+    margin-top:12px;
+  }
+  .video-stage.action-test-stage video { height:100%; max-height:none; }
   .placement-layer { position:absolute; inset:0; cursor:crosshair; z-index:1; }
   .placement-marker { position:absolute; transform:translate(-50%,-50%); border:none; background:transparent; min-width:0; min-height:0; padding:0; cursor:grab; display:block; font-size:11px; font-weight:800; color:#fff; user-select:none; z-index:2; }
   .placement-marker:not(:has(.resize-frame)) { border:2px solid #3d7cff; background:rgba(61,124,255,.3); border-radius:8px; min-width:32px; min-height:32px; display:grid; place-items:center; padding:4px; }
@@ -111,9 +147,9 @@
   .upload-box .icon { font-size: 32px; margin-bottom: 8px; }
   .upload-box .title { font-weight: 700; margin-bottom: 6px; font-size:15px; }
   .video-current { margin-top: 10px; padding: 10px 12px; background: #0c1018; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; word-break: break-all; color:var(--muted); }
-  .video-preview { margin-top: 0; width: 100%; max-height: none; border-radius: 0; background: #000; border: none; display: block; }
+  .video-preview { margin-top: 0; width: 100%; height: 100%; max-height: none; border-radius: 0; background: #000; border: none; display: block; object-fit: contain; }
   .editor-video-wrap { margin-top: 10px; }
-  .editor-video-wrap .video-stage { margin-top: 0; }
+  .editor-video-wrap:not(.preview-hero) .video-stage { margin-top: 0; }
   #liveHotspotLayer {
     position: absolute;
     inset: 0;
@@ -385,21 +421,13 @@ function renderEditor() {
       </div>
     </div>
 
-    <div class="card">
+    <div class="card card-preview-large">
       <div class="card-head"><span class="step-badge">2</span><h3>見た目プレビュー（時間・位置・サイズ）</h3></div>
-      <div class="card-body">
-        <label class="upload-box" id="uploadBox">
-          <input type="file" id="fUpload" class="upload-file-input" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
-          <div class="icon">🎬</div>
-          <div class="title">クリックまたはドラッグ＆ドロップ</div>
-          <div class="hint">mp4 / webm / mov（最大 500MB）</div>
-        </label>
-        <div class="upload-progress" id="uploadProgress"></div>
-        <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
-        <div class="editor-video-wrap" id="editorVideoWrap" style="display:${n.video && !isEnding ? "block" : "none"}">
-          <div class="callout callout-warn" style="margin-bottom:10px"><strong>クリック不可</strong> — 表示タイミングと見た目の確認専用です。停止中は<strong>黄色ガイド</strong>で位置・サイズを編集（<strong>クリックで画像を選択・ドラッグで移動</strong>）。アクションの確認は下の「動作テスト」へ。</div>
-          <div class="video-stage" id="videoStage">
-            <span class="video-stage-label">見た目のみ</span>
+      <div class="card-body card-body-preview">
+        <div class="editor-video-wrap preview-hero" id="editorVideoWrap" style="display:${n.video && !isEnding ? "block" : "none"}">
+          <div class="callout callout-warn preview-hero-callout"><strong>クリック不可</strong> — 本番プレイヤーと同じ 16:9 サイズで表示しています。停止中は<strong>黄色ガイド</strong>で位置・サイズを編集（<strong>クリックで配置・ドラッグで移動</strong>）。アクション確認は下の「動作テスト」へ。</div>
+          <div class="video-stage editor-preview-stage" id="videoStage">
+            <span class="video-stage-label">本番と同じサイズ（16:9）</span>
             <video class="video-preview" id="videoPreview" controls muted playsinline ${n.video ? `src="${esc(videoUrl(n.video, projectId))}"` : ""}></video>
             <div id="liveHotspotLayer" aria-hidden="true"></div>
             <div class="placement-layer" id="placementLayer"></div>
@@ -409,6 +437,16 @@ function renderEditor() {
             <button type="button" class="btn ghost" id="btnPreviewAtHotspot">▶ 選択ボタンの表示秒へ</button>
             <span class="editor-preview-hint" id="editorPreviewHint">再生／シークで、その時刻に表示されるボタンの見た目を確認できます。</span>
           </div>
+        </div>
+        <div class="preview-upload-block">
+          <label class="upload-box" id="uploadBox">
+            <input type="file" id="fUpload" class="upload-file-input" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
+            <div class="icon">🎬</div>
+            <div class="title">クリックまたはドラッグ＆ドロップ</div>
+            <div class="hint">mp4 / webm / mov（最大 500MB）</div>
+          </label>
+          <div class="upload-progress" id="uploadProgress"></div>
+          <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
         </div>
         <input type="hidden" id="fVideo" value="${esc(n.video||"")}" />
       </div>
