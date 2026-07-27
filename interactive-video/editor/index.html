@@ -518,6 +518,37 @@ function setupUpload(nodeId) {
   input.onchange = () => { if (input.files[0]) uploadVideo(nodeId, input.files[0]); input.value = ""; };
 }
 
+// Netlify Functions は1リクエスト約4.5MBが上限のため、ファイルを分割して送り、サーバ側で結合する。
+const UPLOAD_CHUNK = 3.5 * 1024 * 1024; // 3.5MB
+async function chunkedUpload(file, params, onProgress) {
+  const uploadId = `${(params.nodeId || params.assetId || "up")}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const chunkCount = Math.max(1, Math.ceil(file.size / UPLOAD_CHUNK));
+  let last = null;
+  for (let i = 0; i < chunkCount; i++) {
+    const blob = file.slice(i * UPLOAD_CHUNK, (i + 1) * UPLOAD_CHUNK);
+    if (onProgress) onProgress(i + 1, chunkCount);
+    const qs = new URLSearchParams({
+      project: projectId,
+      filename: file.name,
+      uploadId,
+      chunkIndex: String(i),
+      chunkCount: String(chunkCount),
+      ...params,
+    });
+    // ファイル名はクエリ文字列で渡す。X-Filename ヘッダは Latin-1 しか扱えず、
+    // 日本語などを含む file.name を入れると fetch が例外を投げるため付与しない。
+    const res = await fetch(`/api/upload?${qs.toString()}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: blob,
+    });
+    const data = await res.json();
+    if (!res.ok || !data.ok) throw new Error(data.error || "アップロード失敗");
+    last = data;
+  }
+  return last;
+}
+
 async function uploadVideo(nodeId, file) {
   const progress = $("#uploadProgress");
   const ext = file.name.split(".").pop()?.toLowerCase();
@@ -525,15 +556,16 @@ async function uploadVideo(nodeId, file) {
     return alert("mp4 / webm / mov 形式の動画を選んでください");
   }
 
-  progress.textContent = `アップロード中… ${file.name} (${(file.size / 1024 / 1024).toFixed(1)} MB)`;
-
-  const fd = new FormData();
-  fd.append("file", file);
+  const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+  progress.textContent = `アップロード中… ${file.name} (${sizeMB} MB)`;
 
   try {
-    const res = await fetch(`/api/upload?project=${encodeURIComponent(projectId)}&nodeId=${encodeURIComponent(nodeId)}`, { method: "POST", body: fd });
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || "アップロード失敗");
+    const data = await chunkedUpload(file, { nodeId }, (i, n) => {
+      progress.textContent = n > 1
+        ? `アップロード中… ${file.name} (${sizeMB} MB) — ${i}/${n}`
+        : `アップロード中… ${file.name} (${sizeMB} MB)`;
+    });
+    if (!data || !data.ok) throw new Error((data && data.error) || "アップロード失敗");
 
     $("#fVideo").value = data.path;
     $("#videoCurrent").textContent = data.path;
@@ -1255,12 +1287,9 @@ async function uploadButtonImage(file, container, assetId) {
   if (!["png", "jpg", "jpeg", "webp", "gif", "svg"].includes(ext || "")) {
     return alert("画像は png / jpg / webp / gif / svg を選んでください");
   }
-  const fd = new FormData();
-  fd.append("file", file);
   try {
-    const res = await fetch(`/api/upload?project=${encodeURIComponent(projectId)}&kind=image&assetId=${encodeURIComponent(assetId)}`, { method: "POST", body: fd });
-    const data = await res.json();
-    if (!res.ok || !data.ok) throw new Error(data.error || "アップロード失敗");
+    const data = await chunkedUpload(file, { kind: "image", assetId });
+    if (!data || !data.ok) throw new Error((data && data.error) || "アップロード失敗");
     container.querySelector('[data-k="image"]').value = data.path;
     const prev = container.querySelector(".btn-preview");
     if (prev) {

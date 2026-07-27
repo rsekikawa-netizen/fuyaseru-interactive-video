@@ -39,8 +39,9 @@ export default async (req) => {
     const m = /^bytes=(\d*)-(\d*)$/.exec(range);
     if (m) {
       const start = m[1] ? parseInt(m[1], 10) : 0;
-      const end = m[2] ? parseInt(m[2], 10) : total - 1;
-      if (start < total && end < total) {
+      let end = m[2] ? parseInt(m[2], 10) : total - 1;
+      if (end >= total) end = total - 1; // 終端がファイルサイズ以上でもクランプして 206 を返す
+      if (start <= end && start < total) {
         const slice = buf.slice(start, end + 1);
         return new Response(slice, {
           status: 206,
