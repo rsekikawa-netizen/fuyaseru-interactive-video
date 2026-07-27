@@ -383,7 +383,7 @@ function renderEditor() {
         <div class="upload-progress" id="uploadProgress"></div>
         <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
         <div class="editor-video-wrap" id="editorVideoWrap" style="display:${n.video && !isEnding ? "block" : "none"}">
-          <div class="callout callout-warn" style="margin-bottom:10px"><strong>クリック不可</strong> — 表示タイミングと見た目の確認専用です。停止中は<strong>黄色ガイド</strong>で位置・サイズを編集（<strong>ダブルクリックで画像を選択</strong>）。アクションの確認は下の「動作テスト」へ。</div>
+          <div class="callout callout-warn" style="margin-bottom:10px"><strong>クリック不可</strong> — 表示タイミングと見た目の確認専用です。停止中は<strong>黄色ガイド</strong>で位置・サイズを編集（<strong>クリックで画像を選択・ドラッグで移動</strong>）。アクションの確認は下の「動作テスト」へ。</div>
           <div class="video-stage" id="videoStage">
             <span class="video-stage-label">見た目のみ</span>
             <video class="video-preview" id="videoPreview" controls muted playsinline ${n.video ? `src="${esc(videoUrl(n.video, projectId))}"` : ""}></video>
@@ -1278,21 +1278,20 @@ function refreshPlacementMarkers(activeIndex = placementActiveIndex) {
       const up = () => {
         window.removeEventListener("mousemove", move);
         window.removeEventListener("mouseup", up);
-        if (moved) refreshPlacementMarkers(idx);
+        if (moved) {
+          // ドラッグ移動があった → 位置を確定して再描画
+          refreshPlacementMarkers(idx);
+        } else {
+          // 移動なし（＝クリック）→ そのボタンの画像選択ダイアログを開く
+          card.querySelector(".btn-upload-img")?.click();
+        }
       };
       window.addEventListener("mousemove", move);
       window.addEventListener("mouseup", up);
     };
     marker.onclick = (ev) => ev.stopPropagation();
-    // ダブルクリックで、そのボタンの画像選択ダイアログ（エクスプローラー）を開く
-    marker.title = "ダブルクリックで画像を選択";
-    marker.style.cursor = "grab";
-    marker.ondblclick = (ev) => {
-      if (ev.target.classList.contains("resize-handle")) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      card.querySelector(".btn-upload-img")?.click();
-    };
+    marker.title = "クリックで画像を選択（ドラッグで移動）";
+    marker.style.cursor = "pointer";
     layer.appendChild(marker);
   });
   refreshLiveHotspotPreview();
