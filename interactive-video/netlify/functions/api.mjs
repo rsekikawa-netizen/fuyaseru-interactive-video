@@ -134,6 +134,14 @@ export default async (req) => {
       const projectId = sanitizeProjectId(url.searchParams.get("project")) || "default";
       let sc = await blobGetText(blobKey(projectId, "scenario.json"));
       if (!sc) {
+        const origin = new URL(req.url).origin;
+        const staticRes = await fetch(
+          `${origin}/projects/${encodeURIComponent(projectId)}/scenario.json`,
+          { cache: "no-store" }
+        );
+        if (staticRes.ok) sc = await staticRes.text();
+      }
+      if (!sc) {
         return jsonResponse(404, { ok: false, error: "scenario.json not found" });
       }
       return new Response(sc, {
@@ -162,6 +170,69 @@ export default async (req) => {
       const kind = url.searchParams.get("kind") || "video";
       const nodeId = url.searchParams.get("nodeId") || "";
       const assetId = url.searchParams.get("assetId") || "";
+
+      // --- 分割アップロード（チャンク結合）: Netlify Functions の約4.5MB制限を回避 ---
+      const uploadId = url.searchParams.get("uploadId");
+      const chunkIndexRaw = url.searchParams.get("chunkIndex");
+      const chunkCount = parseInt(url.searchParams.get("chunkCount") || "0", 10);
+      if (uploadId && chunkIndexRaw !== null && chunkCount > 0) {
+        const uid = String(uploadId).replace(/[^\w-]+/g, "_").slice(0, 80);
+        const idx = parseInt(chunkIndexRaw, 10);
+        if (!Number.isInteger(idx) || idx < 0 || idx >= chunkCount) {
+          return jsonResponse(400, { ok: false, error: "chunkIndex が不正です" });
+        }
+        const chunk = Buffer.from(await req.arrayBuffer());
+        if (chunk.length > MAX_UPLOAD) {
+          return jsonResponse(413, { ok: false, error: "チャンクが大きすぎます" });
+        }
+        await blobSet(blobKey(projectId, `_uploads/${uid}/${idx}`), chunk, {
+          contentType: "application/octet-stream",
+        });
+        // 最終チャンク以外は受領のみ返す
+        if (idx < chunkCount - 1) {
+          return jsonResponse(200, { ok: true, received: idx, chunkCount });
+        }
+        // 最終チャンク到達 → 全チャンクを結合
+        const filenameC = url.searchParams.get("filename") || (kind === "image" ? "button.png" : "upload.mp4");
+        const parts = await Promise.all(
+          Array.from({ length: chunkCount }, (_, i) =>
+            blobGetBytes(blobKey(projectId, `_uploads/${uid}/${i}`)),
+          ),
+        );
+        if (parts.some((p) => !p)) {
+          return jsonResponse(400, {
+            ok: false,
+            error: "チャンクが欠落しています。もう一度アップロードしてください。",
+          });
+        }
+        const full = Buffer.concat(parts.map((b) => Buffer.from(b)));
+        // 一時チャンクを削除
+        await Promise.all(
+          Array.from({ length: chunkCount }, (_, i) =>
+            blobDelete(blobKey(projectId, `_uploads/${uid}/${i}`)),
+          ),
+        );
+        if (kind === "image") {
+          const ext = (filenameC.split(".").pop() || "png").toLowerCase();
+          const stem = String(assetId || "btn").replace(/[^\w-]+/g, "_").slice(0, 48) || "btn";
+          const outName = `${stem}-${Date.now()}.${ext}`;
+          const rel = `assets/${outName}`;
+          await blobSet(blobKey(projectId, rel), full, {
+            contentType: "image/" + (ext === "jpg" ? "jpeg" : ext),
+          });
+          return jsonResponse(200, {
+            ok: true, kind: "image", path: rel, filename: outName, size: full.length, project: projectId,
+          });
+        }
+        const ext = (filenameC.split(".").pop() || "mp4").toLowerCase();
+        const base = nodeId ? `${nodeId}.${ext}` : filenameC.replace(/[^\w　-鿿.\-()+ ]+/g, "_");
+        const rel = `videos/${base}`;
+        await blobSet(blobKey(projectId, rel), full, { contentType: "video/mp4" });
+        return jsonResponse(200, {
+          ok: true, path: rel, filename: base, size: full.length, project: projectId,
+        });
+      }
+
       const type = req.headers.get("content-type") || "";
       let data;
       let filename = url.searchParams.get("filename") || "";

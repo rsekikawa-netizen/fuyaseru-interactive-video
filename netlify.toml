@@ -3,7 +3,7 @@
 [build]
   base = "interactive-video"
   publish = "."
-  command = "npm install && node netlify/seed-blobs.mjs"
+  command = "npm install --no-audit --no-fund && (node netlify/seed-blobs.mjs || echo seed-blobs skipped)"
   functions = "netlify/functions"
 
 [build.environment]
