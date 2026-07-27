@@ -7,11 +7,16 @@ import { seedFromFilesystem } from "./lib/blob-store.mjs";
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const projectsRoot = join(appRoot, "projects");
 
-if (!process.env.NETLIFY) {
+if (!process.env.NETLIFY && !process.env.NETLIFY_SITE_ID) {
   console.log("seed-blobs: skip (not Netlify build)");
   process.exit(0);
 }
 
 console.log("seed-blobs: syncing projects/ to Netlify Blobs…");
-await seedFromFilesystem(projectsRoot);
-console.log("seed-blobs: done");
+try {
+  await seedFromFilesystem(projectsRoot);
+  console.log("seed-blobs: done");
+} catch (err) {
+  console.error("seed-blobs: failed:", err?.message || err);
+  process.exit(1);
+}

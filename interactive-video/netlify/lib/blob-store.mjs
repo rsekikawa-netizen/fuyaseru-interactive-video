@@ -5,7 +5,12 @@ import { join, relative } from "node:path";
 const STORE = "interactive-video-data";
 
 export function store() {
-  return getStore({ name: STORE, consistency: "strong" });
+  const siteID = process.env.NETLIFY_SITE_ID || process.env.SITE_ID;
+  const token = process.env.NETLIFY_AUTH_TOKEN || process.env.NETLIFY_TOKEN;
+  const opts = { name: STORE, consistency: "strong" };
+  if (siteID) opts.siteID = siteID;
+  if (token) opts.token = token;
+  return getStore(opts);
 }
 
 export function blobKey(projectId, relPath) {
