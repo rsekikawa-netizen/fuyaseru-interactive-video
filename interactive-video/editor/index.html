@@ -383,7 +383,7 @@ function renderEditor() {
         <div class="upload-progress" id="uploadProgress"></div>
         <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
         <div class="editor-video-wrap" id="editorVideoWrap" style="display:${n.video && !isEnding ? "block" : "none"}">
-          <div class="callout callout-warn" style="margin-bottom:10px"><strong>クリック不可</strong> — 表示タイミングと見た目の確認専用です。停止中は<strong>黄色ガイド</strong>で位置・サイズを編集。アクションの確認は下の「動作テスト」へ。</div>
+          <div class="callout callout-warn" style="margin-bottom:10px"><strong>クリック不可</strong> — 表示タイミングと見た目の確認専用です。停止中は<strong>黄色ガイド</strong>で位置・サイズを編集（<strong>ダブルクリックで画像を選択</strong>）。アクションの確認は下の「動作テスト」へ。</div>
           <div class="video-stage" id="videoStage">
             <span class="video-stage-label">見た目のみ</span>
             <video class="video-preview" id="videoPreview" controls muted playsinline ${n.video ? `src="${esc(videoUrl(n.video, projectId))}"` : ""}></video>
@@ -1259,7 +1259,14 @@ function refreshPlacementMarkers(activeIndex = placementActiveIndex) {
       placementActiveIndex = idx;
       card.classList.add("active-card");
       document.querySelectorAll(".hotspot-card").forEach((el, j) => { if (j !== idx) el.classList.remove("active-card"); });
+      const startCX = ev.clientX;
+      const startCY = ev.clientY;
+      let moved = false;
       const move = (me) => {
+        // 数px未満の揺れは無視。実移動が無ければマーカーを作り直さず、
+        // 同一要素にクリック2回が届くようにして dblclick（画像選択）を有効にする。
+        if (!moved && Math.abs(me.clientX - startCX) + Math.abs(me.clientY - startCY) < 3) return;
+        moved = true;
         const rect = layer.getBoundingClientRect();
         const nx = Math.max(0, Math.min(100, ((me.clientX - rect.left) / rect.width) * 100));
         const ny = Math.max(0, Math.min(100, ((me.clientY - rect.top) / rect.height) * 100));
@@ -1271,12 +1278,21 @@ function refreshPlacementMarkers(activeIndex = placementActiveIndex) {
       const up = () => {
         window.removeEventListener("mousemove", move);
         window.removeEventListener("mouseup", up);
-        refreshPlacementMarkers(idx);
+        if (moved) refreshPlacementMarkers(idx);
       };
       window.addEventListener("mousemove", move);
       window.addEventListener("mouseup", up);
     };
     marker.onclick = (ev) => ev.stopPropagation();
+    // ダブルクリックで、そのボタンの画像選択ダイアログ（エクスプローラー）を開く
+    marker.title = "ダブルクリックで画像を選択";
+    marker.style.cursor = "grab";
+    marker.ondblclick = (ev) => {
+      if (ev.target.classList.contains("resize-handle")) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      card.querySelector(".btn-upload-img")?.click();
+    };
     layer.appendChild(marker);
   });
   refreshLiveHotspotPreview();
