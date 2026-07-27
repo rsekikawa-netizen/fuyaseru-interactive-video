@@ -20,6 +20,8 @@
   a { color:#8eb4ff; text-decoration:none; }
   a:hover { text-decoration:underline; }
   .btn { border:1px solid rgba(255,255,255,.2); background:var(--accent); color:#fff; border-radius:10px; padding:9px 16px; font-weight:700; cursor:pointer; font-size:13px; }
+  .btn-file-label { position: relative; overflow: hidden; display: inline-flex; align-items: center; justify-content: center; }
+  .btn-file-label .btn-file-input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
   .btn.ghost { background:var(--panel2); color:var(--text); }
   .btn.danger { background:#a83232; border-color:#a83232; }
   .btn-lg { padding:12px 22px; font-size:14px; }
@@ -89,11 +91,23 @@
   #toast.show { opacity:1; }
   .hint { font-size:12px; color:var(--muted); line-height:1.65; }
   .upload-box {
+    position: relative;
+    display: block;
     border: 2px dashed #3d4a60; border-radius: 14px; padding: 24px; text-align: center;
     background: #0c1018; cursor: pointer; transition: border-color .2s, background .2s;
   }
   .upload-box:hover, .upload-box.dragover { border-color: var(--accent); background: var(--accent-dim); }
-  .upload-box input { display: none; }
+  /* display:none + JS click() は Chrome 等でファイル選択が開かないため、透明オーバーレイ */
+  .upload-box .upload-file-input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+  }
   .upload-box .icon { font-size: 32px; margin-bottom: 8px; }
   .upload-box .title { font-weight: 700; margin-bottom: 6px; font-size:15px; }
   .video-current { margin-top: 10px; padding: 10px 12px; background: #0c1018; border: 1px solid var(--line); border-radius: 10px; font-size: 12px; word-break: break-all; color:var(--muted); }
@@ -374,12 +388,12 @@ function renderEditor() {
     <div class="card">
       <div class="card-head"><span class="step-badge">2</span><h3>見た目プレビュー（時間・位置・サイズ）</h3></div>
       <div class="card-body">
-        <div class="upload-box" id="uploadBox">
-          <input type="file" id="fUpload" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
+        <label class="upload-box" id="uploadBox">
+          <input type="file" id="fUpload" class="upload-file-input" accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov" />
           <div class="icon">🎬</div>
           <div class="title">クリックまたはドラッグ＆ドロップ</div>
           <div class="hint">mp4 / webm / mov（最大 500MB）</div>
-        </div>
+        </label>
         <div class="upload-progress" id="uploadProgress"></div>
         <div class="video-current" id="videoCurrent">${n.video ? esc(n.video) : "（未設定）"}</div>
         <div class="editor-video-wrap" id="editorVideoWrap" style="display:${n.video && !isEnding ? "block" : "none"}">
@@ -507,7 +521,6 @@ function setupUpload(nodeId) {
   const input = $("#fUpload");
   const progress = $("#uploadProgress");
 
-  box.onclick = () => input.click();
   box.ondragover = (e) => { e.preventDefault(); box.classList.add("dragover"); };
   box.ondragleave = () => box.classList.remove("dragover");
   box.ondrop = (e) => {
@@ -659,16 +672,13 @@ function choiceRow(c, i) {
       <label>ボタン画像（任意）</label>
       <div class="row" style="grid-template-columns:1fr auto;align-items:center">
         <input data-k="image" value="${esc(c.image||"")}" placeholder="assets/button.png" />
-        <button type="button" class="btn ghost btn-upload-choice-img">画像UP</button>
+        <label class="btn ghost btn-file-label btn-upload-choice-img">画像UP
+          <input type="file" class="btn-file-input" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" />
+        </label>
       </div>
     </div>
   `;
-  const file = document.createElement("input");
-  file.type = "file";
-  file.accept = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
-  file.style.display = "none";
-  div.appendChild(file);
-  div.querySelector(".btn-upload-choice-img").onclick = () => file.click();
+  const file = div.querySelector(".btn-upload-choice-img .btn-file-input");
   file.onchange = () => { if (file.files[0]) uploadButtonImage(file.files[0], div, `choice-${i}`); file.value = ""; };
   div.querySelector("button.danger").onclick = () => div.remove();
   div.querySelector('[data-k="actionType"]').addEventListener("change", () => syncChoiceActionPanels(div));
@@ -741,7 +751,9 @@ function hotspotCard(h, i, nodeId) {
       <label>ボタン画像</label>
       <div class="row" style="grid-template-columns:1fr auto;align-items:center">
         <input data-k="image" value="${esc(h.image||"")}" placeholder="assets/..." />
-        <button type="button" class="btn btn-upload-img">画像をアップロード</button>
+        <label class="btn btn-file-label btn-upload-img">画像をアップロード
+          <input type="file" class="btn-file-input" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" />
+        </label>
       </div>
       <img class="hotspot-image-preview btn-preview" alt="" ${h.image ? `src="${esc(videoUrl(h.image, projectId))}"` : 'style="display:none"'} />
       <p class="lbl-sub">PNG / WebP 推奨。プレビューの<strong>黄色ガイド</strong>の角／辺をドラッグしてサイズ調整。</p>
@@ -762,12 +774,7 @@ function hotspotCard(h, i, nodeId) {
       <div class="field"><label>縦 y</label><input data-k="y" type="number" min="0" max="100" step="0.5" value="${esc(h.y ?? 68)}" /></div>
     </div>
   `;
-  const file = document.createElement("input");
-  file.type = "file";
-  file.accept = "image/png,image/jpeg,image/webp,image/gif,image/svg+xml";
-  file.style.display = "none";
-  div.appendChild(file);
-  div.querySelector(".btn-upload-img").onclick = () => file.click();
+  const file = div.querySelector(".btn-upload-img .btn-file-input");
   file.onchange = () => { if (file.files[0]) uploadButtonImage(file.files[0], div, `${nodeId}-h${i}`); file.value = ""; };
   div.querySelector(".btn-del").onclick = () => {
     div.remove();
@@ -1283,7 +1290,7 @@ function refreshPlacementMarkers(activeIndex = placementActiveIndex) {
           refreshPlacementMarkers(idx);
         } else {
           // 移動なし（＝クリック）→ そのボタンの画像選択ダイアログを開く
-          card.querySelector(".btn-upload-img")?.click();
+          card.querySelector(".btn-upload-img .btn-file-input")?.click();
         }
       };
       window.addEventListener("mousemove", move);
